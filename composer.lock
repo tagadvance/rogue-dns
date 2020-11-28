@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bb3df973726c7b09ed0db1921524d296",
+    "content-hash": "483b55cbcf556ef3a0c67b5064514815",
     "packages": [
         {
             "name": "cloudflare/sdk",
@@ -574,7 +574,9 @@
     "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": [],
+    "platform": {
+        "php": "^7.4"
+    },
     "platform-dev": [],
     "plugin-api-version": "1.1.0"
 }
