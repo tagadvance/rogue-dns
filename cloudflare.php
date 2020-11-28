@@ -57,7 +57,7 @@ try {
 				throw new \RuntimeException($message);
 			}
 
-			$newIp = get_public_ip_address($config['ip']['url']);
+			$newIp = get_public_ip_address();
 
 			$cache = $config['cache'] ?? DEFAULT_CACHE;
 			if (!is_readable($cache)) {
@@ -98,8 +98,11 @@ function print_example_usage(): void
 	EXAMPLE;
 }
 
-function get_public_ip_address(array $urls): string
+function get_public_ip_address(): string
 {
+    global $config;
+    $urls = $config['ip']['url'];
+
 	// be kind to free services by randomizing urls to spread to load
 	shuffle($urls);
 	while (!empty($urls)) {
@@ -115,6 +118,8 @@ function get_public_ip_address(array $urls): string
 
 class Cloudflare
 {
+    const TTL = 60;
+	const PROXIED = false;
 
 	private DNS $dns;
 	private SSL $ssl;
@@ -147,13 +152,44 @@ class Cloudflare
 			}
 		}
 
+		$records = $this->listRecords($zone->id);
+		$recordsByName = array_column($records, 'name');
+		if (!isset($recordsByName[$zone->name])) {
+			print "Creating A $zone->name" . PHP_EOL;
+
+			$ip = get_public_ip_address();
+			$this->dns->addRecord($zone->id, 'A', $zone->name, $ip, self::TTL, self::PROXIED);
+		}
+
+		$wildCname = "*.$zone->name";
+		if (!isset($records[$wildCname])) {
+			print "Creating CNAME $wildCname" . PHP_EOL;
+			$this->dns->addRecord($zone->id, 'CNAME', $wildCname, $zone->name, self::TTL, self::PROXIED);
+		}
+
+		$www = ['www', "www.$zone->name"];
+		foreach ($www as $subdomain) {
+			if (isset($records[$subdomain])) {
+				print "Deleting CNAME $subdomain" . PHP_EOL;
+				$this->dns->deleteRecord($zone->id, $records[$subdomain]->id);
+			}
+        }
+
 		return $zone;
+	}
+
+	private function listRecords(string $zoneId, string $type = '', $name = '', $content = ''): array
+	{
+		$listRecords = fn(int $page) => $this->dns->listRecords($zoneId, $type, $name, $content, $page);
+		$recordGenerator = self::paginate($listRecords);
+
+		return iterator_to_array($recordGenerator);
 	}
 
 	public function deproxifyRecords(string $zoneId): void
 	{
-		$records = $this->dns->listRecords($zoneId);
-		$proxiedRecords = array_filter($records->result, fn(\stdClass $record) => $record->proxied);
+		$records = $this->listRecords($zoneId);
+		$proxiedRecords = array_filter($records, fn($record) => $record->proxied);
 		foreach ($proxiedRecords as $record) {
 			$update = $this->patchRecordDetails($record, [
 				'proxied' => false,
@@ -189,16 +225,14 @@ class Cloudflare
 		$zones = self::paginate($listZones);
 		foreach ($zones as $zone) {
 			print "Updating zone $zone->name..." . PHP_EOL;
-			$listRecords = fn(int $page) => $this->dns->listRecords($zone->id, $type = 'A', $name = '', $content = '', $page);
-			$recordGenerator = self::paginate($listRecords);
-			$records = iterator_to_array($recordGenerator);
+			$records = $this->listRecords($zone->id, $type = 'A');
 			$isRoot = fn($record) => in_array($record->name, ['@', $record->zone_name]);
 			$rootRecords = array_filter($records, $isRoot);
 			$rootRecord = current($rootRecords);
 			print "Updating record $rootRecord->name..." . PHP_EOL;
 			$update = $this->patchRecordDetails($rootRecord, [
 				'content' => $ip,
-				'ttl' => 60,
+				'ttl' => self::TTL,
 			]);
 			if ($update->success) {
 				print "Updated record $rootRecord->name!" . PHP_EOL;
