@@ -154,6 +154,7 @@ class Cloudflare
 
 		$records = $this->listRecords($zone->id);
 		$recordsByName = array_column($records, 'name');
+
 		if (!isset($recordsByName[$zone->name])) {
 			print "Creating A $zone->name" . PHP_EOL;
 
