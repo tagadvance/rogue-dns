@@ -13,10 +13,11 @@ use GuzzleHttp\Exception\ClientException;
 use tagadvance\roguedns\ZoneSettings;
 
 define('CONFIG_FILE', 'config.ini');
+define('DEFAULT_CACHE', '/tmp/.current-ip');
 
 $options = getopt('', [
 	'add-zone:',
-	'update-ip:',
+	'update-ip::',
 	'help'
 ]);
 if (isset($options['help'])) {
@@ -48,11 +49,34 @@ try {
 		$cloudflare->configure($zone->id);
 	} else if (isset($options['update-ip'])) {
 		$ip = $options['update-ip'];
-		if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-			throw new \InvalidArgumentException('value must be a valid IPv4 address');
-		}
+		if (filter_var($ip, FILTER_VALIDATE_IP)) {
+			$cloudflare->updateIp($ip);
+		} else {
+			if (!$config['ip']) {
+				$message = sprintf('please set one or more ip urls in %s', CONFIG_FILE);
+				throw new \RuntimeException($message);
+			}
 
-		$cloudflare->updateIp($ip);
+			$newIp = get_public_ip_address($config['ip']['url']);
+
+			$cache = $config['cache'] ?? DEFAULT_CACHE;
+			if (!is_readable($cache)) {
+				print "Creating $cache with $newIp";
+				file_put_contents($cache, $newIp);
+				exit(0);
+			}
+
+			$currentIp = file_get_contents($cache);
+			print "Cached IP address: $currentIp" . PHP_EOL;
+
+			if ($newIp == $currentIp) {
+				print '...' . PHP_EOL;
+			} else {
+				print "New IP address detected ($currentIp,$newIp)" . PHP_EOL;
+				$cloudflare->updateIp($newIp);
+				file_put_contents($cache, $newIp);
+			}
+		}
 	} else {
 		print_example_usage();
 		exit;
@@ -67,9 +91,24 @@ function print_example_usage(): void
 	$script = basename(__FILE__);
 	print <<<EXAMPLE
 	./$script --add-zone foo.com
+	./$script --update-ip
 	./$script --update-ip 127.0.0.1
 	
 	EXAMPLE;
+}
+
+function get_public_ip_address(array $urls): string
+{
+	shuffle($urls);
+	while (!empty($urls)) {
+		$url = array_shift($urls);
+		$ip = file_get_contents($url);
+		if (filter_var($ip, FILTER_VALIDATE_IP)) {
+			return trim($ip);
+		}
+	}
+
+	throw new \RuntimeException('public ip address could not be found');
 }
 
 class Cloudflare
