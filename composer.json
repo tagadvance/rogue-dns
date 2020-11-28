@@ -9,5 +9,7 @@
             "email": "tagadvance+github.com@gmail.com"
         }
     ],
-    "require": {}
+    "require": {
+        "cloudflare/sdk": "^1.1"
+    }
 }
