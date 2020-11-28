@@ -2,6 +2,12 @@
     "name": "tagadvance/rogue-dns",
     "description": "Update DNS zones with dynamically allocated IP address, e.g. when hosting a website at home.",
     "type": "project",
+    "keywords": [
+        "cloudflare",
+        "dns",
+        "zone"
+    ],
+    "homepage": "https://github.com/tagadvance/rogue-dns",
     "license": "MIT",
     "authors": [
         {
@@ -9,7 +15,19 @@
             "email": "tagadvance+github.com@gmail.com"
         }
     ],
+    "support": {
+        "issues": "https://github.com/tagadvance/rogue-dns/issues"
+    },
+    "minimum-stability": "stable",
     "require": {
         "cloudflare/sdk": "^1.1"
+    },
+    "require-dev": {
+
+    },
+    "autoload" : {
+        "psr-4" : {
+            "" : "src/"
+        }
     }
 }
