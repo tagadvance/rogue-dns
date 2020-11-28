@@ -100,6 +100,7 @@ function print_example_usage(): void
 
 function get_public_ip_address(array $urls): string
 {
+	// be kind to free services by randomizing urls to spread to load
 	shuffle($urls);
 	while (!empty($urls)) {
 		$url = array_shift($urls);
