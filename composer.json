@@ -1,0 +1,13 @@
+{
+    "name": "tagadvance/rogue-dns",
+    "description": "Update DNS zones with dynamically allocated IP address, e.g. when hosting a website at home.",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tag",
+            "email": "tagadvance+github.com@gmail.com"
+        }
+    ],
+    "require": {}
+}
