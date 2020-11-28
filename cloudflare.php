@@ -91,6 +91,7 @@ function print_example_usage(): void
 	$script = basename(__FILE__);
 	print <<<EXAMPLE
 	./$script --add-zone foo.com
+	# WARNING: These will update *ALL* of your zones!
 	./$script --update-ip
 	./$script --update-ip 127.0.0.1
 	
