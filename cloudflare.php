@@ -61,7 +61,7 @@ try {
 
 			$cache = $config['cache'] ?? DEFAULT_CACHE;
 			if (!is_readable($cache)) {
-				print "Creating $cache with $newIp";
+				print "Creating $cache with $newIp" . PHP_EOL;
 				file_put_contents($cache, $newIp);
 				exit(0);
 			}
