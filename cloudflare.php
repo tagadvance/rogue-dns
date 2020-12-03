@@ -12,7 +12,7 @@ use Cloudflare\API\Endpoints\Zones;
 use GuzzleHttp\Exception\ClientException;
 use tagadvance\roguedns\ZoneSettings;
 
-define('CONFIG_FILE', 'config.ini');
+define('CONFIG_FILE', __DIR__ . '/config.ini');
 define('DEFAULT_CACHE', '/tmp/.current-ip');
 
 $options = getopt('', [
