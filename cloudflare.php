@@ -90,18 +90,18 @@ function print_example_usage(): void
 {
 	$script = basename(__FILE__);
 	print <<<EXAMPLE
-	./$script --add-zone foo.com
-	# WARNING: These will update *ALL* of your zones!
-	./$script --update-ip
-	./$script --update-ip 127.0.0.1
-	
-	EXAMPLE;
+./$script --add-zone foo.com
+# WARNING: These will update *ALL* of your zones!
+./$script --update-ip
+./$script --update-ip 127.0.0.1
+
+EXAMPLE;
 }
 
 function get_public_ip_address(): string
 {
-    global $config;
-    $urls = $config['ip']['url'];
+	global $config;
+	$urls = $config['ip']['url'];
 
 	// be kind to free services by randomizing urls to spread to load
 	shuffle($urls);
@@ -118,7 +118,7 @@ function get_public_ip_address(): string
 
 class Cloudflare
 {
-    const TTL = 60;
+	const TTL = 60;
 	const PROXIED = false;
 
 	private DNS $dns;
@@ -174,7 +174,7 @@ class Cloudflare
 				print "Deleting CNAME $subdomain" . PHP_EOL;
 				$this->dns->deleteRecord($zone->id, $records[$subdomain]->id);
 			}
-        }
+		}
 
 		return $zone;
 	}
