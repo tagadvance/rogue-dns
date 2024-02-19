@@ -13,7 +13,6 @@ use GuzzleHttp\Exception\ClientException;
 use tagadvance\roguedns\ZoneSettings;
 
 define('CONFIG_FILE', __DIR__ . '/config.ini');
-define('DEFAULT_CACHE', '/tmp/.current-ip');
 
 $options = getopt('', [
 	'add-zone:',
@@ -57,24 +56,21 @@ try {
 				throw new \RuntimeException($message);
 			}
 
-			$newIp = get_public_ip_address();
-
-			$cache = $config['cache'] ?? DEFAULT_CACHE;
-			if (!is_readable($cache)) {
-				print "Creating $cache with $newIp" . PHP_EOL;
-				file_put_contents($cache, $newIp);
-				exit(0);
+			$domain = $config['domains']['primary'];
+			$r = dns_get_record($domain, DNS_A, $config['dns']);
+			if (!isset($r[0]['ip']) || !filter_var($r[0]['ip'], FILTER_VALIDATE_IP)) {
+				$message = sprintf('DNS lookup failed for %s', $domain);
+				throw new \RuntimeException($message);
 			}
 
-			$currentIp = file_get_contents($cache);
-			print "Cached IP address: $currentIp" . PHP_EOL;
+			$currentIp = $r[0]['ip'];
+			$newIp = get_public_ip_address();
 
 			if ($newIp == $currentIp) {
 				print '...' . PHP_EOL;
 			} else {
-				print "New IP address detected ($currentIp,$newIp)" . PHP_EOL;
+				print "New IP address detected: $currentIp => $newIp" . PHP_EOL;
 				$cloudflare->updateIp($newIp);
-				file_put_contents($cache, $newIp);
 			}
 		}
 	} else {
