@@ -3,6 +3,13 @@
 Update DNS zones in Cloudflare with dynamically allocated IP address, e.g. when hosting a website at home.
 
 ## Installation
+Docker (preferred):
+```bash
+# copy config-sample.ini to config.ini and populate with your credentials
+docker build . -t rogue-dns:latest
+docker-compose up -d
+```
+Classic:
 ```bash
 mkdir ~/git
 cd ~/git
@@ -26,14 +33,4 @@ cp config-sample.ini config.ini
 # WARNING: These will update *ALL* of your zones!
 ./cloudflare.php --update-ip
 ./cloudflare.php --update-ip 127.0.0.1
-```
-
-## Scheduling
-`crontab -e`
-```
-# every minute, e.g.
-* * * * * $HOME/git/rogue-dns/cloudflare.php --update-ip
-
-# every 5 minutes, e.g.
-*/5 * * * * $HOME/git/rogue-dns/cloudflare.php --update-ip
 ```
