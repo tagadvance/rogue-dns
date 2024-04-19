@@ -5,7 +5,7 @@ Update DNS zones in Cloudflare with dynamically allocated IP address, e.g. when 
 ## Installation
 Docker (preferred):
 ```bash
-# copy config-sample.ini to config.ini and populate with your credentials
+# copy config-sample.ini to config.ini and populate with your credentials and domain whitelist
 docker build . -t rogue-dns:latest
 docker-compose up -d
 ```
@@ -29,8 +29,12 @@ cp config-sample.ini config.ini
 ## Usage
 ```
 ./cloudflare.php --help
+# list zones and their records
+./$script --list-zones
+# add a new zone with reasonable defaults
 ./cloudflare.php --add-zone foo.com
-# WARNING: These will update *ALL* of your zones!
+# automatically detect IP
 ./cloudflare.php --update-ip
+# manually set IP address
 ./cloudflare.php --update-ip 127.0.0.1
 ```
