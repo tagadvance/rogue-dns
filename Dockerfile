@@ -3,7 +3,7 @@ FROM ubuntu:latest
 RUN ln -fs /usr/share/zoneinfo/America/Denver /etc/localtime \
     && apt-get update \
     && apt-get -y install cron \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y php8.1-cli php8.1-curl composer \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y php8.3-cli php8.3-curl composer \
     && rm -rf /var/cache/apt/archives /var/lib/apt/lists/* \
     && mkdir -p /opt/rogue-dns/src
 

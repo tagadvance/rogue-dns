@@ -129,6 +129,8 @@ class Cloudflare
 			$isWhitelisted = fn($record) => in_array($record->name, $domainWhitelist);
 			$whitelistedRecords = array_filter($records, $isWhitelisted);
 			foreach ($whitelistedRecords as $record) {
+				$record->zone_id = $zone->id;
+
 				print "Updating record $record->name..." . PHP_EOL;
 				try {
 					$update = $this->patchRecordDetails($record, [
