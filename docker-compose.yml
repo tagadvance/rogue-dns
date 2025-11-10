@@ -1,5 +1,0 @@
-version: '3.8'
-services:
-  rogue-dns:
-    image: rogue-dns:latest
-    restart: unless-stopped

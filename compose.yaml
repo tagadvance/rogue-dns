@@ -1,0 +1,6 @@
+services:
+  rogue-dns:
+    build: ./
+    restart: unless-stopped
+    environment:
+      TZ: 'America/Denver'
