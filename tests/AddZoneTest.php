@@ -8,20 +8,21 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use tagadvance\roguedns\Cloudflare;
 use tagadvance\roguedns\Test\Support\FakeAdapter;
+use tagadvance\roguedns\Test\Support\SilencesOutput;
 
 #[CoversClass(Cloudflare::class)]
 final class AddZoneTest extends TestCase
 {
+    use SilencesOutput;
+
     public function testExistingRecordsAreNotRecreated(): void
     {
         $adapter = self::adapterWithZoneRecords([
-            ['id' => 'r1', 'name' => 'example.com', 'type' => 'A'],
-            ['id' => 'r2', 'name' => '*.example.com', 'type' => 'CNAME'],
+            ['id' => 'r1', 'name' => 'example.com', 'type' => 'A', 'content' => '203.0.113.1', 'ttl' => 60],
+            ['id' => 'r2', 'name' => '*.example.com', 'type' => 'CNAME', 'content' => 'example.com', 'ttl' => 60],
         ]);
 
-        ob_start();
-        Cloudflare::fromAdapter($adapter)->addZone('example.com', '203.0.113.1');
-        ob_end_clean();
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter)->addZone('example.com', '203.0.113.1'));
 
         self::assertSame([], self::urisFor($adapter, 'post', 'zones/z1/dns_records'));
     }
@@ -32,9 +33,7 @@ final class AddZoneTest extends TestCase
         $adapter->queue('post', 'zones/z1/dns_records', ['success' => true, 'result' => ['id' => 'new1']]);
         $adapter->queue('post', 'zones/z1/dns_records', ['success' => true, 'result' => ['id' => 'new2']]);
 
-        ob_start();
-        Cloudflare::fromAdapter($adapter)->addZone('example.com', '203.0.113.1');
-        ob_end_clean();
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter)->addZone('example.com', '203.0.113.1'));
 
         self::assertCount(2, self::urisFor($adapter, 'post', 'zones/z1/dns_records'));
     }
@@ -42,15 +41,13 @@ final class AddZoneTest extends TestCase
     public function testJumpStartWwwCnameIsDeleted(): void
     {
         $adapter = self::adapterWithZoneRecords([
-            ['id' => 'r1', 'name' => 'example.com', 'type' => 'A'],
-            ['id' => 'r2', 'name' => '*.example.com', 'type' => 'CNAME'],
-            ['id' => 'rwww', 'name' => 'www.example.com', 'type' => 'CNAME'],
+            ['id' => 'r1', 'name' => 'example.com', 'type' => 'A', 'content' => '203.0.113.1', 'ttl' => 60],
+            ['id' => 'r2', 'name' => '*.example.com', 'type' => 'CNAME', 'content' => 'example.com', 'ttl' => 60],
+            ['id' => 'rwww', 'name' => 'www.example.com', 'type' => 'CNAME', 'content' => 'example.com', 'ttl' => 60],
         ]);
         $adapter->queue('delete', 'zones/z1/dns_records/rwww', ['success' => true]);
 
-        ob_start();
-        Cloudflare::fromAdapter($adapter)->addZone('example.com', '203.0.113.1');
-        ob_end_clean();
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter)->addZone('example.com', '203.0.113.1'));
 
         self::assertSame(
             ['zones/z1/dns_records/rwww'],
