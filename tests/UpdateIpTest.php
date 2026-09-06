@@ -38,7 +38,7 @@ final class UpdateIpTest extends TestCase
         self::assertSame(['zones/z1/dns_records/r1'], self::putUris($adapter));
     }
 
-    public function testARecordWithTheRightTtlButWrongTtlIsRewritten(): void
+    public function testAnUnproxiedRecordWithTheWrongTtlIsRewritten(): void
     {
         $adapter = self::adapterWithRecords([
             ['id' => 'r1', 'name' => 'example.com', 'type' => 'A', 'content' => '203.0.113.9', 'ttl' => 3600],
@@ -226,6 +226,42 @@ final class UpdateIpTest extends TestCase
         self::assertFalse($puts[1]['data']['proxied'], 'an unproxied record stays unproxied');
         self::assertSame('203.0.113.9', $puts[0]['data']['content'], 'and the address is still updated');
         self::assertSame('203.0.113.9', $puts[1]['data']['content']);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $records
+     */
+    /**
+     * Cloudflare pins a proxied record to ttl=1 ("auto") and ignores any value sent for it.
+     * Comparing TTL there would make every proxied record look permanently stale, which at a
+     * 60s interval is a rewrite of the whole fleet every minute, forever.
+     */
+    public function testAProxiedRecordAtTheTargetAddressIsLeftAlone(): void
+    {
+        $adapter = self::adapterWithRecords([
+            ['id' => 'r1', 'name' => 'example.com', 'type' => 'A', 'content' => '203.0.113.9', 'ttl' => 1, 'proxied' => true],
+        ]);
+
+        $errors = $this->captureErrors();
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter, $errors)->updateIp('203.0.113.9', ['example.com']));
+
+        self::assertSame([], self::putUris($adapter), 'ttl=1 is Cloudflare\'s, not staleness');
+    }
+
+    public function testAStaleProxiedRecordIsUpdatedWithoutForcingItsTtl(): void
+    {
+        $adapter = self::adapterWithRecords([
+            ['id' => 'r1', 'name' => 'example.com', 'type' => 'A', 'content' => '198.51.100.1', 'ttl' => 1, 'proxied' => true],
+        ]);
+        $adapter->queue('put', 'zones/z1/dns_records/r1', ['success' => true, 'result' => []]);
+
+        $errors = $this->captureErrors();
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter, $errors)->updateIp('203.0.113.9', ['example.com']));
+
+        $put = array_values(array_filter($adapter->requests, fn(array $r): bool => $r['method'] === 'put'))[0];
+        self::assertSame('203.0.113.9', $put['data']['content'], 'the address is still corrected');
+        self::assertSame(1, $put['data']['ttl'], 'and Cloudflare keeps ownership of the TTL');
+        self::assertTrue($put['data']['proxied']);
     }
 
     /**

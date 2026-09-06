@@ -252,7 +252,11 @@ class Cloudflare
                 }
 
                 $record = $records[0];
-                if ($record->content === $ip && $record->ttl === self::TTL) {
+                // Cloudflare forces ttl=1 ("auto") on a proxied record and ignores any value
+                // sent for it, so comparing TTL there would make every proxied record look
+                // permanently stale and rewrite it on every pass, forever.
+                $ttlSettled = $record->proxied || $record->ttl === self::TTL;
+                if ($record->content === $ip && $ttlSettled) {
                     continue;
                 }
 
@@ -264,10 +268,14 @@ class Cloudflare
                 }
 
                 try {
-                    $update = $this->updateRecord($zone->id, $record, [
-                        'content' => $ip,
-                        'ttl' => self::TTL,
-                    ]);
+                    // Leave a proxied record's TTL alone for the same reason; toUpdatePayload
+                    // echoes back whatever Cloudflare currently holds.
+                    $details = ['content' => $ip];
+                    if (!$record->proxied) {
+                        $details['ttl'] = self::TTL;
+                    }
+
+                    $update = $this->updateRecord($zone->id, $record, $details);
                     if (Field::bool($update, 'success', false) !== true) {
                         $errors = json_encode($update->errors ?? null, JSON_THROW_ON_ERROR);
 
