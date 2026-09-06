@@ -19,7 +19,8 @@ final class WhitelistReport
      * @param list<string> $missing whitelisted names with no A record at all
      * @param array<string, non-empty-list<string>> $ambiguous name => the several addresses it holds
      * @param array<string, string> $elsewhere name => an address that is not this host's
-     * @param array<string, string> $proxied name => address, orange-clouded so DNS hides the origin
+     * @param array<string, string> $proxied name => address, orange-clouded. Informational, not a
+     *                                        fault: proxying is a per-record choice
      * @param int $matching names that resolve to exactly one record pointing at this host
      */
     public function __construct(
@@ -72,9 +73,14 @@ final class WhitelistReport
         return new self($missing, $ambiguous, $elsewhere, $proxied, $matching);
     }
 
+    /**
+     * Whether anything here needs a person. Proxying is deliberate and per-record, so it is
+     * reported but never counted: a fleet that is mostly orange-clouded is a valid setup, and a
+     * check that always fails is a check nobody reads.
+     */
     public function hasProblems(): bool
     {
-        return $this->missing !== [] || $this->ambiguous !== [] || $this->proxied !== [];
+        return $this->missing !== [] || $this->ambiguous !== [];
     }
 
     public function render(string $expectedIp): string
@@ -101,8 +107,9 @@ final class WhitelistReport
 
         if ($this->proxied !== []) {
             $lines[] = '';
-            $lines[] = sprintf('%d whitelisted name(s) are proxied, so public DNS shows a Cloudflare address', count($this->proxied));
-            $lines[] = 'rather than this host:';
+            $lines[] = sprintf('%d whitelisted name(s) are proxied. Updates carry the flag through, so this', count($this->proxied));
+            $lines[] = 'is only worth a look because the proxy carries HTTP(S) on standard ports and nothing';
+            $lines[] = 'else -- WireGuard, SSH and SMTP need the record left grey:';
             foreach ($this->proxied as $name => $address) {
                 $lines[] = "  $name -> $address";
             }

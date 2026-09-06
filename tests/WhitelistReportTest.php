@@ -76,7 +76,11 @@ final class WhitelistReportTest extends TestCase
         );
 
         self::assertSame(['orange.example.com' => self::IP], $report->proxied);
-        self::assertTrue($report->hasProblems());
+        self::assertFalse(
+            $report->hasProblems(),
+            'proxying is a deliberate per-record choice, so it is reported but is not a fault',
+        );
+        self::assertStringContainsString('WireGuard, SSH and SMTP', $report->render(self::IP));
     }
 
     public function testRecordsOutsideTheWhitelistAreIgnored(): void

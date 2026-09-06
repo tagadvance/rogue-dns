@@ -195,6 +195,32 @@ final class UpdateIpTest extends TestCase
     /**
      * @param list<array<string, mixed>> $records
      */
+    /**
+     * The orange cloud is the operator's choice, per record. An IP update must carry whatever
+     * the record already had, never this tool's own default.
+     */
+    public function testTheProxiedFlagIsCarriedThroughAnUpdate(): void
+    {
+        $adapter = self::adapterWithRecords([
+            ['id' => 'r1', 'name' => 'proxied.example.com', 'type' => 'A', 'content' => '198.51.100.1', 'ttl' => 60, 'proxied' => true],
+            ['id' => 'r2', 'name' => 'direct.example.com', 'type' => 'A', 'content' => '198.51.100.1', 'ttl' => 60, 'proxied' => false],
+        ]);
+        $adapter->queue('put', 'zones/z1/dns_records/r1', ['success' => true, 'result' => []]);
+        $adapter->queue('put', 'zones/z1/dns_records/r2', ['success' => true, 'result' => []]);
+
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter)
+            ->updateIp('203.0.113.9', ['proxied.example.com', 'direct.example.com']));
+
+        $puts = array_values(array_filter($adapter->requests, fn(array $r): bool => $r['method'] === 'put'));
+        self::assertTrue($puts[0]['data']['proxied'], 'a proxied record stays proxied');
+        self::assertFalse($puts[1]['data']['proxied'], 'an unproxied record stays unproxied');
+        self::assertSame('203.0.113.9', $puts[0]['data']['content'], 'and the address is still updated');
+        self::assertSame('203.0.113.9', $puts[1]['data']['content']);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $records
+     */
     private static function adapterWithRecords(array $records): FakeAdapter
     {
         $adapter = new FakeAdapter();
