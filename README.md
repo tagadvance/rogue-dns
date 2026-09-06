@@ -104,8 +104,8 @@ composer install
 composer run check    # format check, static analysis, tests
 ```
 
-Static analysis runs at PHPStan level 10. `phpstan-baseline.neon` holds the errors not yet fixed;
-it is a ratchet, so entries may be removed but never added.
+Static analysis runs at PHPStan level 10 with nothing suppressed — no baseline, no ignores. Keep it
+that way.
 
 ---
 
