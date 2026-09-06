@@ -96,29 +96,33 @@ class Cloudflare
         $records = $this->listRecords($zoneId);
         $proxiedRecords = array_filter($records, fn($record) => $record->proxied);
         foreach ($proxiedRecords as $record) {
-            $update = $this->patchRecordDetails($record, [
-                'proxied' => false,
-            ]);
-            print_r($update);
+            $this->updateRecord($zoneId, $record, ['proxied' => false]);
         }
     }
 
     /**
-     * @param stdClass $record
-     * @param array $details
-     * @return stdClass
+     * The API overwrites the whole record rather than merging, so every field worth keeping has
+     * to be sent back with the change. The zone id is a parameter because Cloudflare stopped
+     * returning zone_id on records in November 2024.
+     *
+     * @param array<string, mixed> $details fields to change
      */
-    private function patchRecordDetails(stdClass $record, array $details)
+    private function updateRecord(string $zoneId, stdClass $record, array $details): stdClass
     {
-        $required = [
+        $existing = [
             'type' => $record->type,
             'name' => $record->name,
             'content' => $record->content,
             'ttl' => $record->ttl,
+            'proxied' => $record->proxied ?? self::PROXIED,
         ];
-        $details = array_merge($required, $details);
+        foreach (['comment', 'tags', 'priority'] as $optional) {
+            if (isset($record->{$optional})) {
+                $existing[$optional] = $record->{$optional};
+            }
+        }
 
-        return $this->dns->updateRecordDetails($record->zone_id, $record->id, $details);
+        return $this->dns->updateRecordDetails($zoneId, $record->id, array_merge($existing, $details));
     }
 
     public function configure(string $zoneId): void
@@ -139,11 +143,9 @@ class Cloudflare
             $isWhitelisted = fn($record) => in_array($record->name, $domainWhitelist);
             $whitelistedRecords = array_filter($records, $isWhitelisted);
             foreach ($whitelistedRecords as $record) {
-                $record->zone_id = $zone->id;
-
                 print "Updating record $record->name..." . PHP_EOL;
                 try {
-                    $update = $this->patchRecordDetails($record, [
+                    $update = $this->updateRecord($zone->id, $record, [
                         'content' => $ip,
                         'ttl' => self::TTL,
                     ]);
