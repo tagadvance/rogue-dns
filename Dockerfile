@@ -2,10 +2,11 @@ FROM debian:trixie
 
 ARG DEBIAN_FRONTEND=noninteractive
 
+# config.ini holds a Cloudflare API token and is deliberately not copied in: an image layer
+# is immutable and readable by anyone who can pull it. It is mounted at runtime instead.
 COPY src/ /opt/rogue-dns/src/
 COPY cloudflare.php /opt/rogue-dns/
 COPY composer.* /opt/rogue-dns/
-COPY config.ini /opt/rogue-dns/
 COPY LICENSE /opt/rogue-dns/
 
 RUN apt-get update \
