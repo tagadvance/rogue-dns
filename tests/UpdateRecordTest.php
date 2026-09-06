@@ -8,10 +8,13 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use tagadvance\roguedns\Cloudflare;
 use tagadvance\roguedns\Test\Support\FakeAdapter;
+use tagadvance\roguedns\Test\Support\SilencesOutput;
 
 #[CoversClass(Cloudflare::class)]
 final class UpdateRecordTest extends TestCase
 {
+    use SilencesOutput;
+
     public function testDeproxifyUsesTheZoneIdItWasGiven(): void
     {
         $adapter = new FakeAdapter();
@@ -20,9 +23,7 @@ final class UpdateRecordTest extends TestCase
         ]));
         $adapter->queue('put', 'zones/z1/dns_records/r1', ['success' => true, 'result' => []]);
 
-        ob_start();
-        Cloudflare::fromAdapter($adapter)->deproxifyRecords('z1');
-        ob_end_clean();
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter)->deproxifyRecords('z1'));
 
         $put = self::requestsFor($adapter, 'put');
         self::assertSame('zones/z1/dns_records/r1', $put[0]['uri']);
@@ -36,9 +37,7 @@ final class UpdateRecordTest extends TestCase
             ['id' => 'r1', 'name' => 'example.com', 'type' => 'A', 'content' => '203.0.113.1', 'ttl' => 60, 'proxied' => false],
         ]));
 
-        ob_start();
-        Cloudflare::fromAdapter($adapter)->deproxifyRecords('z1');
-        ob_end_clean();
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter)->deproxifyRecords('z1'));
 
         self::assertSame([], self::requestsFor($adapter, 'put'));
     }

@@ -8,19 +8,20 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use tagadvance\roguedns\Cloudflare;
 use tagadvance\roguedns\Test\Support\FakeAdapter;
+use tagadvance\roguedns\Test\Support\SilencesOutput;
 
 #[CoversClass(Cloudflare::class)]
 final class UpdateIpTest extends TestCase
 {
+    use SilencesOutput;
+
     public function testRecordsAlreadyPointingAtTheAddressAreNotRewritten(): void
     {
         $adapter = self::adapterWithRecords([
             ['id' => 'r1', 'name' => 'example.com', 'type' => 'A', 'content' => '203.0.113.9', 'ttl' => 60],
         ]);
 
-        ob_start();
-        Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com']);
-        ob_end_clean();
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com']));
 
         self::assertSame([], self::putUris($adapter));
     }
@@ -32,9 +33,7 @@ final class UpdateIpTest extends TestCase
         ]);
         $adapter->queue('put', 'zones/z1/dns_records/r1', ['success' => true, 'result' => []]);
 
-        ob_start();
-        Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com']);
-        ob_end_clean();
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com']));
 
         self::assertSame(['zones/z1/dns_records/r1'], self::putUris($adapter));
     }
@@ -46,9 +45,7 @@ final class UpdateIpTest extends TestCase
         ]);
         $adapter->queue('put', 'zones/z1/dns_records/r1', ['success' => true, 'result' => []]);
 
-        ob_start();
-        Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com']);
-        ob_end_clean();
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com']));
 
         self::assertSame(['zones/z1/dns_records/r1'], self::putUris($adapter));
     }
@@ -59,9 +56,7 @@ final class UpdateIpTest extends TestCase
             ['id' => 'r1', 'name' => 'other.example.com', 'type' => 'A', 'content' => '198.51.100.1', 'ttl' => 60],
         ]);
 
-        ob_start();
-        Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com']);
-        ob_end_clean();
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com']));
 
         self::assertSame([], self::putUris($adapter));
     }

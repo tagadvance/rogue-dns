@@ -67,9 +67,9 @@ function listZones(Cloudflare $cloudflare): int
 }
 
 /**
- * @param string|list<string>|false $name
+ * @param mixed $name raw --add-zone value from getopt
  */
-function addZone(Cloudflare $cloudflare, Configuration $config, string|array|false $name): int
+function addZone(Cloudflare $cloudflare, Configuration $config, mixed $name): int
 {
     if (!is_string($name) || !filter_var($name, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
         fwrite(STDERR, 'zone name must be a valid host name' . PHP_EOL);
@@ -93,9 +93,9 @@ function addZone(Cloudflare $cloudflare, Configuration $config, string|array|fal
  * pre-filter rather than the authority: updateIp compares against the record content Cloudflare
  * returns before writing anything, so a resolver that disagrees costs one list call, not a write.
  *
- * @param string|list<string>|false $manualIp value of --update-ip, or false when passed bare
+ * @param mixed $manualIp raw --update-ip value from getopt; false when the flag was passed bare
  */
-function updateIp(Cloudflare $cloudflare, Configuration $config, string|array|false $manualIp): int
+function updateIp(Cloudflare $cloudflare, Configuration $config, mixed $manualIp): int
 {
     $whitelist = $config->list('domains', 'domain');
 
@@ -116,7 +116,8 @@ function updateIp(Cloudflare $cloudflare, Configuration $config, string|array|fa
 
     $domain = $config->string('domains', 'primary');
     $records = dns_get_record($domain, DNS_A);
-    $currentIp = $records === false ? null : ($records[0]['ip'] ?? null);
+    $resolved = $records === false ? null : ($records[0]['ip'] ?? null);
+    $currentIp = is_string($resolved) ? $resolved : null;
 
     if ($currentIp === $newIp) {
         print '...' . PHP_EOL;
