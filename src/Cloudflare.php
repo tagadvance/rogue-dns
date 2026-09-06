@@ -10,6 +10,7 @@ use Cloudflare\API\Endpoints\DNS;
 use Cloudflare\API\Endpoints\SSL;
 use Cloudflare\API\Endpoints\Zones;
 use Iterator;
+use RuntimeException;
 use stdClass;
 
 class Cloudflare
@@ -140,23 +141,27 @@ class Cloudflare
         foreach ($zones as $zone) {
             print "Updating zone $zone->name..." . PHP_EOL;
             $records = $this->listRecords($zone->id, $type = 'A');
-            $isWhitelisted = fn($record) => in_array($record->name, $domainWhitelist);
+            $isWhitelisted = fn($record) => in_array($record->name, $domainWhitelist, strict: true);
             $whitelistedRecords = array_filter($records, $isWhitelisted);
             foreach ($whitelistedRecords as $record) {
+                if ($record->content === $ip && $record->ttl === self::TTL) {
+                    continue;
+                }
+
                 print "Updating record $record->name..." . PHP_EOL;
                 try {
                     $update = $this->updateRecord($zone->id, $record, [
                         'content' => $ip,
                         'ttl' => self::TTL,
                     ]);
-                    if ($update->success) {
-                        print "Updated record $record->name!" . PHP_EOL;
-                    } else {
-                        print_r($update->errors);
-                        exit(1);
+                    if (!$update->success) {
+                        $errors = json_encode($update->errors, JSON_THROW_ON_ERROR);
+
+                        throw new RuntimeException("could not update $record->name: $errors");
                     }
+                    print "Updated record $record->name!" . PHP_EOL;
                 } catch (ResponseException $e) {
-                    if ($e->getMessage() == 'Record already exists.') {
+                    if ($e->getMessage() === 'Record already exists.') {
                         continue;
                     }
 
