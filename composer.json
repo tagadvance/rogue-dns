@@ -32,6 +32,7 @@
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.87",
+        "guzzlehttp/psr7": "^2.8",
         "phpstan/phpstan": "^2.1",
         "phpunit/phpunit": "^11.5"
     },
