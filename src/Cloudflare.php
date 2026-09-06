@@ -176,10 +176,29 @@ class Cloudflare
         foreach ($this->listZones() as $zone) {
             print "Updating zone $zone->name..." . PHP_EOL;
 
-            foreach ($this->listRecords($zone->id, type: 'A') as $record) {
-                if (!in_array($record->name, $domainWhitelist, strict: true)) {
+            $whitelisted = array_filter(
+                $this->listRecords($zone->id, type: 'A'),
+                fn(Record $record): bool => in_array($record->name, $domainWhitelist, strict: true),
+            );
+
+            foreach (self::groupByName($whitelisted) as $name => $records) {
+                // A name served by several A records is round-robin, not dynamic DNS. Writing
+                // this address into the first would break whatever the set points at, and
+                // Cloudflare rejects the rest as duplicates -- an error this method deliberately
+                // ignores, so the result would be a silent partial rewrite.
+                if (count($records) > 1) {
+                    fwrite(STDERR, sprintf(
+                        'Skipping %s: %d A records (%s). Remove it from the whitelist, or reduce it to one record.%s',
+                        $name,
+                        count($records),
+                        implode(', ', array_map(fn(Record $r): string => $r->content, $records)),
+                        PHP_EOL,
+                    ));
+
                     continue;
                 }
+
+                $record = $records[0];
                 if ($record->content === $ip && $record->ttl === self::TTL) {
                     continue;
                 }
@@ -212,6 +231,20 @@ class Cloudflare
                 }
             }
         }
+    }
+
+    /**
+     * @param array<int, Record> $records
+     * @return array<string, non-empty-list<Record>>
+     */
+    private static function groupByName(array $records): array
+    {
+        $grouped = [];
+        foreach ($records as $record) {
+            $grouped[$record->name][] = $record;
+        }
+
+        return $grouped;
     }
 
     /**

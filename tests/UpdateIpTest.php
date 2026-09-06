@@ -75,6 +75,33 @@ final class UpdateIpTest extends TestCase
         self::assertStringContainsString('Would update example.com: 198.51.100.1 => 203.0.113.9', $output);
     }
 
+    public function testANameWithSeveralARecordsIsSkippedRatherThanPartiallyRewritten(): void
+    {
+        $adapter = self::adapterWithRecords([
+            ['id' => 'r1', 'name' => 'pages.example.com', 'type' => 'A', 'content' => '185.199.108.153', 'ttl' => 60],
+            ['id' => 'r2', 'name' => 'pages.example.com', 'type' => 'A', 'content' => '185.199.109.153', 'ttl' => 60],
+        ]);
+
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['pages.example.com']));
+
+        self::assertSame([], self::putUris($adapter), 'a round-robin set must not be half rewritten');
+    }
+
+    public function testOtherNamesStillUpdateWhenOneIsSkipped(): void
+    {
+        $adapter = self::adapterWithRecords([
+            ['id' => 'r1', 'name' => 'pages.example.com', 'type' => 'A', 'content' => '185.199.108.153', 'ttl' => 60],
+            ['id' => 'r2', 'name' => 'pages.example.com', 'type' => 'A', 'content' => '185.199.109.153', 'ttl' => 60],
+            ['id' => 'r3', 'name' => 'home.example.com', 'type' => 'A', 'content' => '198.51.100.1', 'ttl' => 60],
+        ]);
+        $adapter->queue('put', 'zones/z1/dns_records/r3', ['success' => true, 'result' => []]);
+
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter)
+            ->updateIp('203.0.113.9', ['pages.example.com', 'home.example.com']));
+
+        self::assertSame(['zones/z1/dns_records/r3'], self::putUris($adapter));
+    }
+
     /**
      * @param list<array<string, mixed>> $records
      */
