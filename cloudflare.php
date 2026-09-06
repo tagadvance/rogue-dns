@@ -10,6 +10,7 @@ use tagadvance\roguedns\Configuration;
 use tagadvance\roguedns\HealthState;
 use tagadvance\roguedns\PublicIpLookup;
 use tagadvance\roguedns\Scheduler;
+use tagadvance\roguedns\WhitelistReport;
 
 const CONFIG_FILE = __DIR__ . '/config.ini';
 
@@ -26,6 +27,7 @@ function main(): int
         'update-ip::',
         'watch',
         'health',
+        'doctor',
         'dry-run',
         'help',
     ]);
@@ -56,6 +58,10 @@ function main(): int
 
         if (isset($options['add-zone'])) {
             return addZone($cloudflare, $config, $options['add-zone']);
+        }
+
+        if (isset($options['doctor'])) {
+            return doctor($cloudflare, $config);
         }
 
         if (isset($options['watch'])) {
@@ -151,6 +157,22 @@ function report(int $changed, string $ip, bool $dryRun): void
 }
 
 /**
+ * Reports how the whitelist lines up with what Cloudflare actually holds.
+ *
+ * Read-only. Exits non-zero when something needs a human, so it can be run on a schedule.
+ */
+function doctor(Cloudflare $cloudflare, Configuration $config): int
+{
+    $whitelist = $config->list('domains', 'domain');
+    $ip = new PublicIpLookup($config->list('ip', 'url'))->find();
+
+    $report = WhitelistReport::build($whitelist, $cloudflare->listWhitelistedRecords($whitelist), $ip);
+    print $report->render($ip);
+
+    return $report->hasProblems() ? 1 : 0;
+}
+
+/**
  * Runs the update on an interval as a long-lived foreground process, logging to stdout so
  * `docker logs` shows it. Stops cleanly on SIGTERM/SIGINT where pcntl is available.
  */
@@ -230,6 +252,8 @@ function usage(): string
         ./$script --watch
         # report whether the watch loop is still succeeding
         ./$script --health
+        # check the whitelist against what Cloudflare actually holds
+        ./$script --doctor
 
         USAGE;
 }
