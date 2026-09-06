@@ -136,13 +136,17 @@ function updateIp(Cloudflare $cloudflare, Configuration $config, mixed $manualIp
     $resolved = $records === false ? null : ($records[0]['ip'] ?? null);
     $currentIp = is_string($resolved) ? $resolved : null;
 
-    if ($currentIp === $newIp && !$dryRun) {
+    if ($currentIp === $newIp) {
         print '...' . PHP_EOL;
-
-        return 0;
+        if (!$dryRun) {
+            return 0;
+        }
+        // Nothing to do, but a dry run is asked precisely to see what a change would do.
+        print "dry run: address unchanged, reporting what a change to $newIp would rewrite" . PHP_EOL;
+    } else {
+        print sprintf('New IP address detected: %s => %s', $currentIp ?? 'unresolved', $newIp) . PHP_EOL;
     }
 
-    print sprintf('New IP address detected: %s => %s', $currentIp ?? 'unresolved', $newIp) . PHP_EOL;
     $cloudflare->updateIp($newIp, $whitelist, $dryRun);
 
     return 0;
