@@ -98,6 +98,7 @@ class Cloudflare
      * Every record in the zone, across all pages.
      *
      * @return list<Record>
+     * @throws RuntimeException if a record is missing a field this project relies on
      */
     public function listRecords(string $zoneId, string $type = '', string $name = '', string $content = ''): array
     {
@@ -113,6 +114,7 @@ class Cloudflare
      * Every zone on the account, across all pages.
      *
      * @return list<Zone>
+     * @throws RuntimeException if a zone is missing a field this project relies on
      */
     public function listZones(
         string $name = '',

@@ -6,6 +6,7 @@ namespace tagadvance\roguedns;
 
 use Cloudflare\API\Adapter\Adapter;
 use Cloudflare\API\Endpoints\ZoneSettings as BaseZoneSettings;
+use Psr\Http\Message\ResponseInterface;
 use stdClass;
 
 /**
@@ -55,7 +56,7 @@ class ZoneSettings extends BaseZoneSettings
      * Returns null rather than throwing when the body is not a JSON object, which is what a
      * captive portal or an interception proxy sends back with a 200.
      */
-    private function decode(\Psr\Http\Message\ResponseInterface $response): ?stdClass
+    private function decode(ResponseInterface $response): ?stdClass
     {
         $decoded = json_decode((string) $response->getBody());
 

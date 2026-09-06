@@ -20,6 +20,11 @@ final class Configuration
      */
     private function __construct(private readonly array $sections, private readonly string $path) {}
 
+    /**
+     * @throws RuntimeException when the file cannot be read or is not valid INI. The two are
+     *                          distinguished, because an unparseable file used to report itself
+     *                          as a missing token.
+     */
     public static function fromFile(string $path): self
     {
         if (!is_readable($path)) {
@@ -37,6 +42,8 @@ final class Configuration
 
     /**
      * A required single value. Fails when the key is absent, empty, or written as a list.
+     *
+     * @throws RuntimeException naming the section, key and file
      */
     public function string(string $section, string $key): string
     {
@@ -56,6 +63,7 @@ final class Configuration
      * convention rather than a trap.
      *
      * @return non-empty-list<string>
+     * @throws RuntimeException naming the section, key and file
      */
     public function list(string $section, string $key): array
     {
