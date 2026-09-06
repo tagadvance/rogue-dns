@@ -18,7 +18,9 @@ final class UpdateIpTest extends TestCase
             ['id' => 'r1', 'name' => 'example.com', 'type' => 'A', 'content' => '203.0.113.9', 'ttl' => 60],
         ]);
 
+        ob_start();
         Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com']);
+        ob_end_clean();
 
         self::assertSame([], self::putUris($adapter));
     }
@@ -30,7 +32,9 @@ final class UpdateIpTest extends TestCase
         ]);
         $adapter->queue('put', 'zones/z1/dns_records/r1', ['success' => true, 'result' => []]);
 
+        ob_start();
         Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com']);
+        ob_end_clean();
 
         self::assertSame(['zones/z1/dns_records/r1'], self::putUris($adapter));
     }
@@ -42,7 +46,9 @@ final class UpdateIpTest extends TestCase
         ]);
         $adapter->queue('put', 'zones/z1/dns_records/r1', ['success' => true, 'result' => []]);
 
+        ob_start();
         Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com']);
+        ob_end_clean();
 
         self::assertSame(['zones/z1/dns_records/r1'], self::putUris($adapter));
     }
@@ -53,7 +59,9 @@ final class UpdateIpTest extends TestCase
             ['id' => 'r1', 'name' => 'other.example.com', 'type' => 'A', 'content' => '198.51.100.1', 'ttl' => 60],
         ]);
 
+        ob_start();
         Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com']);
+        ob_end_clean();
 
         self::assertSame([], self::putUris($adapter));
     }
