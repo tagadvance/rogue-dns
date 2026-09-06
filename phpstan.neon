@@ -1,0 +1,12 @@
+# North star: level 10, no baseline. Every entry retired from
+# phpstan-baseline.neon is permanent progress; nothing new may be added.
+parameters:
+    level: 10
+    paths:
+        - cloudflare.php
+        - src
+        - tests
+    treatPhpDocTypesAsCertain: false
+
+includes:
+    - phpstan-baseline.neon
