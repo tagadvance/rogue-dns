@@ -194,14 +194,28 @@ class Cloudflare
      * between the caller's change check and Cloudflare's actual state from becoming a write
      * every run.
      *
+     * Every whitelisted record is reconciled against what the API reports on every call. There is
+     * deliberately no cheaper "has anything changed" pre-check: any such check answers a question
+     * about one name, or about a cached copy, and cannot establish that the other records are
+     * correct. A pass interrupted partway -- which is what a router reboot during an address
+     * change produces -- leaves records split across two addresses, and only re-reading all of
+     * them converges.
+     *
      * @param list<string> $domainWhitelist exact record names to update
      * @param bool $dryRun report what would change without writing anything
+     * @return int records changed, or that would change in a dry run
      * @throws RuntimeException when the API reports an update as unsuccessful
      */
-    public function updateIp(string $ip, array $domainWhitelist, bool $dryRun = false): void
+    public function updateIp(string $ip, array $domainWhitelist, bool $dryRun = false): int
     {
+        $changed = 0;
+
         foreach ($this->listZones() as $zone) {
-            print "Updating zone $zone->name..." . PHP_EOL;
+            // Only zones that could hold a whitelisted name. Without this the pass costs one
+            // request per zone on the account, most of them for zones with nothing to do.
+            if (!self::mayContain($zone, $domainWhitelist)) {
+                continue;
+            }
 
             $whitelisted = array_filter(
                 $this->listRecords($zone->id, type: 'A'),
@@ -232,11 +246,11 @@ class Cloudflare
 
                 if ($dryRun) {
                     print sprintf('Would update %s: %s => %s', $record->name, $record->content, $ip) . PHP_EOL;
+                    $changed++;
 
                     continue;
                 }
 
-                print "Updating record $record->name..." . PHP_EOL;
                 try {
                     $update = $this->updateRecord($zone->id, $record, [
                         'content' => $ip,
@@ -247,7 +261,8 @@ class Cloudflare
 
                         throw new RuntimeException("could not update $record->name: $errors");
                     }
-                    print "Updated record $record->name!" . PHP_EOL;
+                    print sprintf('Updated %s: %s => %s', $record->name, $record->content, $ip) . PHP_EOL;
+                    $changed++;
                 } catch (ResponseException $e) {
                     // Cloudflare rejects a duplicate rather than treating the write as a no-op.
                     if (self::isDuplicateRecord($e)) {
@@ -258,6 +273,24 @@ class Cloudflare
                 }
             }
         }
+
+        return $changed;
+    }
+
+    /**
+     * Whether any whitelisted name falls inside this zone.
+     *
+     * @param list<string> $domainWhitelist
+     */
+    private static function mayContain(Zone $zone, array $domainWhitelist): bool
+    {
+        foreach ($domainWhitelist as $name) {
+            if ($name === $zone->name || str_ends_with($name, ".$zone->name")) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
