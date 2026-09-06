@@ -23,10 +23,14 @@ final class PublicIpLookup
     private const MAX_RESPONSE_BYTES = 128;
 
     /**
-     * @param non-empty-list<string> $urls
+     * @param non-empty-list<string> $urls echo services returning a bare address as plain text
      */
     public function __construct(private readonly array $urls) {}
 
+    /**
+     * @throws RuntimeException listing every source tried and why each was unusable, so a
+     *                          silent fallback to one working source is visible when it is not
+     */
     public function find(): string
     {
         $urls = $this->urls;
