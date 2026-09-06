@@ -24,5 +24,5 @@ CMD ["sleep", "infinity"]
 # The healthcheck is also the scheduler: this is what replaced cron. The timeout has to cover
 # a DNS lookup, an address lookup against a third-party service, and a paginated walk of the
 # Cloudflare API -- the original 3s could not, and Docker SIGKILLs an overrunning probe.
-HEALTHCHECK --interval=5m --timeout=3s \
+HEALTHCHECK --interval=5m --timeout=60s --start-period=30s --start-interval=15s \
     CMD ["/opt/rogue-dns/cloudflare.php", "--update-ip"]
