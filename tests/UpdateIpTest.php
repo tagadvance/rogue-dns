@@ -103,6 +103,96 @@ final class UpdateIpTest extends TestCase
     }
 
     /**
+     * A pass interrupted partway -- a router reboot during an address change -- leaves records
+     * split across two addresses. The next pass must converge them, and must not be talked out
+     * of running by any record already being correct.
+     */
+    public function testASplitFleetConvergesOnTheNextPass(): void
+    {
+        $adapter = self::adapterWithRecords([
+            // already written before the interruption
+            ['id' => 'r1', 'name' => 'a.example.com', 'type' => 'A', 'content' => '203.0.113.9', 'ttl' => 60],
+            ['id' => 'r2', 'name' => 'b.example.com', 'type' => 'A', 'content' => '203.0.113.9', 'ttl' => 60],
+            // never reached
+            ['id' => 'r3', 'name' => 'c.example.com', 'type' => 'A', 'content' => '198.51.100.1', 'ttl' => 60],
+            ['id' => 'r4', 'name' => 'd.example.com', 'type' => 'A', 'content' => '198.51.100.1', 'ttl' => 60],
+        ]);
+        $adapter->queue('put', 'zones/z1/dns_records/r3', ['success' => true, 'result' => []]);
+        $adapter->queue('put', 'zones/z1/dns_records/r4', ['success' => true, 'result' => []]);
+
+        $whitelist = ['a.example.com', 'b.example.com', 'c.example.com', 'd.example.com'];
+        $changed = 0;
+        $this->silently(function () use ($adapter, $whitelist, &$changed): void {
+            $changed = Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', $whitelist);
+        });
+
+        self::assertSame(
+            ['zones/z1/dns_records/r3', 'zones/z1/dns_records/r4'],
+            self::putUris($adapter),
+            'only the stale half is rewritten, and it is rewritten',
+        );
+        self::assertSame(2, $changed);
+    }
+
+    public function testZonesHoldingNothingWhitelistedAreNotRead(): void
+    {
+        $adapter = new FakeAdapter();
+        $adapter->queue('get', 'zones', [
+            'success' => true,
+            'result' => [
+                ['id' => 'z1', 'name' => 'example.com'],
+                ['id' => 'z2', 'name' => 'unrelated.com'],
+            ],
+            'result_info' => ['total_pages' => 1],
+        ]);
+        $adapter->queue('get', 'zones/z1/dns_records', [
+            'success' => true,
+            'result' => [['id' => 'r1', 'name' => 'example.com', 'type' => 'A', 'content' => '203.0.113.9', 'ttl' => 60]],
+            'result_info' => ['total_pages' => 1],
+        ]);
+
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com']));
+
+        $read = array_column(array_filter($adapter->requests, fn(array $r): bool => $r['method'] === 'get'), 'uri');
+        self::assertNotContains('zones/z2/dns_records', $read, 'unrelated zones cost no request');
+    }
+
+    public function testSubdomainsResolveToTheirZone(): void
+    {
+        $adapter = new FakeAdapter();
+        $adapter->queue('get', 'zones', [
+            'success' => true,
+            'result' => [['id' => 'z1', 'name' => 'example.com']],
+            'result_info' => ['total_pages' => 1],
+        ]);
+        $adapter->queue('get', 'zones/z1/dns_records', [
+            'success' => true,
+            'result' => [['id' => 'r1', 'name' => 'home.example.com', 'type' => 'A', 'content' => '198.51.100.1', 'ttl' => 60]],
+            'result_info' => ['total_pages' => 1],
+        ]);
+        $adapter->queue('put', 'zones/z1/dns_records/r1', ['success' => true, 'result' => []]);
+
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['home.example.com']));
+
+        self::assertSame(['zones/z1/dns_records/r1'], self::putUris($adapter));
+    }
+
+    public function testAZoneWhoseNameMerelyEndsTheSameIsNotMatched(): void
+    {
+        $adapter = new FakeAdapter();
+        $adapter->queue('get', 'zones', [
+            'success' => true,
+            'result' => [['id' => 'z1', 'name' => 'notexample.com']],
+            'result_info' => ['total_pages' => 1],
+        ]);
+
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com']));
+
+        $read = array_column(array_filter($adapter->requests, fn(array $r): bool => $r['method'] === 'get'), 'uri');
+        self::assertNotContains('zones/z1/dns_records', $read);
+    }
+
+    /**
      * @param list<array<string, mixed>> $records
      */
     private static function adapterWithRecords(array $records): FakeAdapter

@@ -124,32 +124,30 @@ function updateIp(Cloudflare $cloudflare, Configuration $config, mixed $manualIp
             return 1;
         }
 
-        $cloudflare->updateIp($ip, $whitelist, $dryRun);
+        report($cloudflare->updateIp($ip, $whitelist, $dryRun), $ip, $dryRun);
 
         return 0;
     }
 
     $newIp = new PublicIpLookup($config->list('ip', 'url'))->find();
 
-    $domain = $config->string('domains', 'primary');
-    $records = dns_get_record($domain, DNS_A);
-    $resolved = $records === false ? null : ($records[0]['ip'] ?? null);
-    $currentIp = is_string($resolved) ? $resolved : null;
-
-    if ($currentIp === $newIp) {
-        print '...' . PHP_EOL;
-        if (!$dryRun) {
-            return 0;
-        }
-        // Nothing to do, but a dry run is asked precisely to see what a change would do.
-        print "dry run: address unchanged, reporting what a change to $newIp would rewrite" . PHP_EOL;
-    } else {
-        print sprintf('New IP address detected: %s => %s', $currentIp ?? 'unresolved', $newIp) . PHP_EOL;
-    }
-
-    $cloudflare->updateIp($newIp, $whitelist, $dryRun);
+    report($cloudflare->updateIp($newIp, $whitelist, $dryRun), $newIp, $dryRun);
 
     return 0;
+}
+
+/**
+ * One line per pass, so an idle loop is quiet and a real change is conspicuous in the log.
+ */
+function report(int $changed, string $ip, bool $dryRun): void
+{
+    if ($changed === 0) {
+        print "... all records already point at $ip" . PHP_EOL;
+
+        return;
+    }
+
+    printf('%s %d record%s to %s%s', $dryRun ? 'Would update' : 'Updated', $changed, $changed === 1 ? '' : 's', $ip, PHP_EOL);
 }
 
 /**

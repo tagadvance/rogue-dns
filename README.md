@@ -7,9 +7,9 @@
 Point DNS records in Cloudflare at a dynamically allocated IP address, so you can host from home
 without a static IP.
 
-Every five minutes it detects the host's public address and, when it differs from what Cloudflare
-holds, rewrites the whitelisted A records to match. Two independent address sources must agree
-before anything is published.
+Every five minutes it detects the host's public address and reconciles the whitelisted A records
+against it, rewriting only those that disagree. Two independent address sources must agree before
+anything is published.
 
 ## Requirements
 
@@ -62,9 +62,6 @@ container and a separate one for interactive use.
 `config.ini` sections:
 
 - **`[api] token`** — the API token.
-- **`[domains] primary`** — resolved through the system resolver to decide whether an update is
-  worth attempting. Make it one of the whitelisted domains; if it is not, the check never agrees and
-  every run does a needless pass over the API.
 - **`[domains] domain[]`** — the whitelist. Only these *exact* record names are updated. Wildcards
   are not matched.
 - **`[ip] url[]`** — public-address lookup services, asked in random order until two agree. **List at
@@ -111,6 +108,11 @@ The `HEALTHCHECK` runs `--health`, which only reads the outcome the loop recorde
 of its own, so it cannot be killed mid-update. It reports unhealthy when no run has *succeeded*
 within two intervals, which means a single transient failure recovers on the next tick rather than
 flapping the container's status.
+
+Each pass re-reads every whitelisted record from the API rather than asking a cheaper question
+first. That is deliberate: an interrupted pass — a router reboot partway through an address change —
+leaves records split across two addresses, and no shortcut based on one name or on a cached copy can
+detect that. On a 17-zone account a pass costs 18 requests, about 1.5% of Cloudflare's rate limit.
 
 A transient failure is logged and retried on the next tick rather than exiting; sustained failure
 surfaces as `unhealthy` in `docker ps`. Note that nothing restarts an unhealthy container in plain
