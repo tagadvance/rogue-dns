@@ -26,9 +26,9 @@
     "require-dev": {
 
     },
-    "autoload" : {
-        "psr-4" : {
-            "" : "src/"
+    "autoload": {
+        "psr-4": {
+            "tagadvance\\roguedns\\": "src/"
         }
     }
 }
