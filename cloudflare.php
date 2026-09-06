@@ -19,6 +19,7 @@ function main(): int
         'add-zone:',
         'list-zones',
         'update-ip::',
+        'dry-run',
         'help',
     ]);
 
@@ -46,7 +47,7 @@ function main(): int
             return addZone($cloudflare, $config, $options['add-zone']);
         }
 
-        return updateIp($cloudflare, $config, $options['update-ip']);
+        return updateIp($cloudflare, $config, $options['update-ip'], isset($options['dry-run']));
     } catch (Throwable $e) {
         fwrite(STDERR, $e::class . ': ' . $e->getMessage() . PHP_EOL);
 
@@ -94,8 +95,9 @@ function addZone(Cloudflare $cloudflare, Configuration $config, mixed $name): in
  * returns before writing anything, so a resolver that disagrees costs one list call, not a write.
  *
  * @param mixed $manualIp raw --update-ip value from getopt; false when the flag was passed bare
+ * @param bool $dryRun report what would change without writing anything
  */
-function updateIp(Cloudflare $cloudflare, Configuration $config, mixed $manualIp): int
+function updateIp(Cloudflare $cloudflare, Configuration $config, mixed $manualIp, bool $dryRun = false): int
 {
     $whitelist = $config->list('domains', 'domain');
 
@@ -107,7 +109,7 @@ function updateIp(Cloudflare $cloudflare, Configuration $config, mixed $manualIp
             return 1;
         }
 
-        $cloudflare->updateIp($ip, $whitelist);
+        $cloudflare->updateIp($ip, $whitelist, $dryRun);
 
         return 0;
     }
@@ -119,14 +121,14 @@ function updateIp(Cloudflare $cloudflare, Configuration $config, mixed $manualIp
     $resolved = $records === false ? null : ($records[0]['ip'] ?? null);
     $currentIp = is_string($resolved) ? $resolved : null;
 
-    if ($currentIp === $newIp) {
+    if ($currentIp === $newIp && !$dryRun) {
         print '...' . PHP_EOL;
 
         return 0;
     }
 
     print sprintf('New IP address detected: %s => %s', $currentIp ?? 'unresolved', $newIp) . PHP_EOL;
-    $cloudflare->updateIp($newIp, $whitelist);
+    $cloudflare->updateIp($newIp, $whitelist, $dryRun);
 
     return 0;
 }
@@ -144,6 +146,8 @@ function usage(): string
         ./$script --update-ip
         # manually set IP address (note the '=': an optional option value cannot be space-separated)
         ./$script --update-ip=203.0.113.9
+        # report what would change without writing anything
+        ./$script --update-ip --dry-run
 
         USAGE;
 }
