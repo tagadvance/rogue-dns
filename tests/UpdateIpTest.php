@@ -61,6 +61,20 @@ final class UpdateIpTest extends TestCase
         self::assertSame([], self::putUris($adapter));
     }
 
+    public function testDryRunReportsWithoutWriting(): void
+    {
+        $adapter = self::adapterWithRecords([
+            ['id' => 'r1', 'name' => 'example.com', 'type' => 'A', 'content' => '198.51.100.1', 'ttl' => 60],
+        ]);
+
+        ob_start();
+        Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com'], dryRun: true);
+        $output = (string) ob_get_clean();
+
+        self::assertSame([], self::putUris($adapter));
+        self::assertStringContainsString('Would update example.com: 198.51.100.1 => 203.0.113.9', $output);
+    }
+
     /**
      * @param list<array<string, mixed>> $records
      */

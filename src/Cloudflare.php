@@ -168,9 +168,10 @@ class Cloudflare
      * every run.
      *
      * @param list<string> $domainWhitelist exact record names to update
+     * @param bool $dryRun report what would change without writing anything
      * @throws RuntimeException when the API reports an update as unsuccessful
      */
-    public function updateIp(string $ip, array $domainWhitelist): void
+    public function updateIp(string $ip, array $domainWhitelist, bool $dryRun = false): void
     {
         foreach ($this->listZones() as $zone) {
             print "Updating zone $zone->name..." . PHP_EOL;
@@ -180,6 +181,12 @@ class Cloudflare
                     continue;
                 }
                 if ($record->content === $ip && $record->ttl === self::TTL) {
+                    continue;
+                }
+
+                if ($dryRun) {
+                    print sprintf('Would update %s: %s => %s', $record->name, $record->content, $ip) . PHP_EOL;
+
                     continue;
                 }
 
