@@ -1,6 +1,7 @@
 services:
   rogue-dns:
     build: ./
+    container_name: rogue-dns
     restart: unless-stopped
     environment:
       TZ: 'America/Denver'
