@@ -7,3 +7,8 @@ services:
     volumes:
       # Keeps the Cloudflare API token out of the image. Read-only: the tool never writes it.
       - ./config.ini:/opt/rogue-dns/config.ini:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
