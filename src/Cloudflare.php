@@ -58,7 +58,7 @@ class Cloudflare
         }
 
         $records = $this->listRecords($zone->id);
-        $recordsByName = array_column($records, 'name');
+        $recordsByName = array_column($records, null, 'name');
 
         if (!isset($recordsByName[$zone->name])) {
             print "Creating A $zone->name" . PHP_EOL;
@@ -67,16 +67,16 @@ class Cloudflare
         }
 
         $wildCname = "*.$zone->name";
-        if (!isset($records[$wildCname])) {
+        if (!isset($recordsByName[$wildCname])) {
             print "Creating CNAME $wildCname" . PHP_EOL;
             $this->dns->addRecord($zone->id, 'CNAME', $wildCname, $zone->name, self::TTL, self::PROXIED);
         }
 
         $www = ['www', "www.$zone->name"];
         foreach ($www as $subdomain) {
-            if (isset($records[$subdomain])) {
+            if (isset($recordsByName[$subdomain])) {
                 print "Deleting CNAME $subdomain" . PHP_EOL;
-                $this->dns->deleteRecord($zone->id, $records[$subdomain]->id);
+                $this->dns->deleteRecord($zone->id, $recordsByName[$subdomain]->id);
             }
         }
 
