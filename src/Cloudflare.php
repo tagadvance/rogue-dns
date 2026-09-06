@@ -30,6 +30,9 @@ class Cloudflare
     private Zones $zones;
     private ZoneSettings $zoneSettings;
 
+    /** @var resource */
+    private $errorStream;
+
     public static function fromToken(string $token): self
     {
         $key = new APIToken($token);
@@ -40,16 +43,22 @@ class Cloudflare
 
     /**
      * Builds a client over an already-configured adapter. Prefer fromToken(); this exists so
-     * tests can substitute a transport.
+     * tests can substitute a transport and capture what would go to stderr.
+     *
+     * @param resource|null $errorStream defaults to STDERR
      */
-    public static function fromAdapter(Adapter $adapter): self
+    public static function fromAdapter(Adapter $adapter, $errorStream = null): self
     {
-        return new self($adapter);
+        return new self($adapter, $errorStream);
     }
 
-    private function __construct(Adapter $adapter)
+    /**
+     * @param resource|null $errorStream defaults to STDERR
+     */
+    private function __construct(Adapter $adapter, $errorStream = null)
     {
         $this->adapter = $adapter;
+        $this->errorStream = $errorStream ?? STDERR;
         $this->dns = new DNS($adapter);
         $this->ssl = new SSL($adapter);
         $this->zones = new Zones($adapter);
@@ -201,6 +210,9 @@ class Cloudflare
      * change produces -- leaves records split across two addresses, and only re-reading all of
      * them converges.
      *
+     * Progress goes to stdout; a name that had to be skipped is reported on the error stream,
+     * so the two can be told apart by whatever is reading the container log.
+     *
      * @param list<string> $domainWhitelist exact record names to update
      * @param bool $dryRun report what would change without writing anything
      * @return int records changed, or that would change in a dry run
@@ -228,7 +240,7 @@ class Cloudflare
                 // Cloudflare rejects the rest as duplicates -- an error this method deliberately
                 // ignores, so the result would be a silent partial rewrite.
                 if (count($records) > 1) {
-                    fwrite(STDERR, sprintf(
+                    fwrite($this->errorStream, sprintf(
                         'Skipping %s: %d A records (%s). Remove it from the whitelist, or reduce it to one record.%s',
                         $name,
                         count($records),

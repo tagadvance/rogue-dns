@@ -56,9 +56,11 @@ final class UpdateIpTest extends TestCase
             ['id' => 'r1', 'name' => 'other.example.com', 'type' => 'A', 'content' => '198.51.100.1', 'ttl' => 60],
         ]);
 
-        $this->silently(fn() => Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['example.com']));
+        $errors = $this->captureErrors();
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter, $errors)->updateIp('203.0.113.9', ['example.com']));
 
         self::assertSame([], self::putUris($adapter));
+        self::assertSame('', $this->captured($errors), 'an ordinary pass says nothing on the error stream');
     }
 
     public function testDryRunReportsWithoutWriting(): void
@@ -82,9 +84,15 @@ final class UpdateIpTest extends TestCase
             ['id' => 'r2', 'name' => 'pages.example.com', 'type' => 'A', 'content' => '185.199.109.153', 'ttl' => 60],
         ]);
 
-        $this->silently(fn() => Cloudflare::fromAdapter($adapter)->updateIp('203.0.113.9', ['pages.example.com']));
+        $errors = $this->captureErrors();
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter, $errors)->updateIp('203.0.113.9', ['pages.example.com']));
 
         self::assertSame([], self::putUris($adapter), 'a round-robin set must not be half rewritten');
+        self::assertStringContainsString(
+            'Skipping pages.example.com: 2 A records',
+            $this->captured($errors),
+            'and the operator is told which name and why',
+        );
     }
 
     public function testOtherNamesStillUpdateWhenOneIsSkipped(): void
@@ -96,10 +104,12 @@ final class UpdateIpTest extends TestCase
         ]);
         $adapter->queue('put', 'zones/z1/dns_records/r3', ['success' => true, 'result' => []]);
 
-        $this->silently(fn() => Cloudflare::fromAdapter($adapter)
+        $errors = $this->captureErrors();
+        $this->silently(fn() => Cloudflare::fromAdapter($adapter, $errors)
             ->updateIp('203.0.113.9', ['pages.example.com', 'home.example.com']));
 
         self::assertSame(['zones/z1/dns_records/r3'], self::putUris($adapter));
+        self::assertStringContainsString('Skipping pages.example.com', $this->captured($errors));
     }
 
     /**
