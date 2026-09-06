@@ -1,50 +1,8 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Cannot access offset ''api'' on array\|false\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 2
-			path: cloudflare.php
-
-		-
-			message: '#^Cannot access offset ''domain'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 2
-			path: cloudflare.php
-
-		-
-			message: '#^Cannot access offset ''domains'' on array\|false\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: cloudflare.php
-
-		-
-			message: '#^Cannot access offset ''ip'' on array\|false\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: cloudflare.php
-
-		-
-			message: '#^Cannot access offset ''ip'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: cloudflare.php
-
-		-
-			message: '#^Cannot access offset ''primary'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: cloudflare.php
-
-		-
-			message: '#^Cannot access offset ''token'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: cloudflare.php
-
-		-
-			message: '#^Cannot access offset ''url'' on mixed\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
+			message: '#^Binary operation "\." between mixed and "\\n"\|"\\r\\n" results in an error\.$#'
+			identifier: binaryOp.invalid
 			count: 1
 			path: cloudflare.php
 
@@ -73,48 +31,6 @@ parameters:
 			path: cloudflare.php
 
 		-
-			message: '#^Parameter \#1 \$array of function shuffle expects TArray of array\<T\>, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: cloudflare.php
-
-		-
-			message: '#^Parameter \#1 \$filename of function file_get_contents expects string, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: cloudflare.php
-
-		-
-			message: '#^Parameter \#1 \$hostname of function dns_get_record expects string, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: cloudflare.php
-
-		-
-			message: '#^Parameter \#1 \$ip of method tagadvance\\roguedns\\Cloudflare\:\:updateIp\(\) expects string, list\<mixed\>\|string\|false given\.$#'
-			identifier: argument.type
-			count: 1
-			path: cloudflare.php
-
-		-
-			message: '#^Parameter \#1 \$name of method tagadvance\\roguedns\\Cloudflare\:\:addZone\(\) expects string, list\<mixed\>\|string\|false given\.$#'
-			identifier: argument.type
-			count: 1
-			path: cloudflare.php
-
-		-
-			message: '#^Parameter \#1 \$string of function trim expects string, string\|false given\.$#'
-			identifier: argument.type
-			count: 1
-			path: cloudflare.php
-
-		-
-			message: '#^Parameter \#1 \$token of static method tagadvance\\roguedns\\Cloudflare\:\:fromToken\(\) expects string, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: cloudflare.php
-
-		-
 			message: '#^Parameter \#1 \$zoneId of method tagadvance\\roguedns\\Cloudflare\:\:configure\(\) expects string, mixed given\.$#'
 			identifier: argument.type
 			count: 1
@@ -133,20 +49,20 @@ parameters:
 			path: cloudflare.php
 
 		-
-			message: '#^Parameter \#2 \$domainWhitelist of method tagadvance\\roguedns\\Cloudflare\:\:updateIp\(\) expects array, mixed given\.$#'
-			identifier: argument.type
-			count: 2
-			path: cloudflare.php
-
-		-
 			message: '#^Parameter \#2 \.\.\.\$values of function sprintf expects bool\|float\|int\|string\|null, mixed given\.$#'
 			identifier: argument.type
 			count: 1
 			path: cloudflare.php
 
 		-
-			message: '#^Part \$currentIp \(mixed\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
+			message: '#^Parameter \#3 \$manualIp of function updateIp expects list\<string\>\|string\|false, list\<mixed\>\|string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Parameter \#3 \$name of function addZone expects list\<string\>\|string\|false, list\<mixed\>\|string\|false given\.$#'
+			identifier: argument.type
 			count: 1
 			path: cloudflare.php
 
@@ -164,12 +80,6 @@ parameters:
 
 		-
 			message: '#^Part \$record\-\>type \(mixed\) of encapsed string cannot be cast to string\.$#'
-			identifier: encapsedStringPart.nonString
-			count: 1
-			path: cloudflare.php
-
-		-
-			message: '#^Part \$zone\-\>name \(mixed\) of encapsed string cannot be cast to string\.$#'
 			identifier: encapsedStringPart.nonString
 			count: 1
 			path: cloudflare.php

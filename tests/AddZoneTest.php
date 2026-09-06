@@ -19,7 +19,9 @@ final class AddZoneTest extends TestCase
             ['id' => 'r2', 'name' => '*.example.com', 'type' => 'CNAME'],
         ]);
 
+        ob_start();
         Cloudflare::fromAdapter($adapter)->addZone('example.com', '203.0.113.1');
+        ob_end_clean();
 
         self::assertSame([], self::urisFor($adapter, 'post', 'zones/z1/dns_records'));
     }
@@ -30,7 +32,9 @@ final class AddZoneTest extends TestCase
         $adapter->queue('post', 'zones/z1/dns_records', ['success' => true, 'result' => ['id' => 'new1']]);
         $adapter->queue('post', 'zones/z1/dns_records', ['success' => true, 'result' => ['id' => 'new2']]);
 
+        ob_start();
         Cloudflare::fromAdapter($adapter)->addZone('example.com', '203.0.113.1');
+        ob_end_clean();
 
         self::assertCount(2, self::urisFor($adapter, 'post', 'zones/z1/dns_records'));
     }
@@ -44,7 +48,9 @@ final class AddZoneTest extends TestCase
         ]);
         $adapter->queue('delete', 'zones/z1/dns_records/rwww', ['success' => true]);
 
+        ob_start();
         Cloudflare::fromAdapter($adapter)->addZone('example.com', '203.0.113.1');
+        ob_end_clean();
 
         self::assertSame(
             ['zones/z1/dns_records/rwww'],

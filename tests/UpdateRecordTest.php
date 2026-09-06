@@ -20,7 +20,9 @@ final class UpdateRecordTest extends TestCase
         ]));
         $adapter->queue('put', 'zones/z1/dns_records/r1', ['success' => true, 'result' => []]);
 
+        ob_start();
         Cloudflare::fromAdapter($adapter)->deproxifyRecords('z1');
+        ob_end_clean();
 
         $put = self::requestsFor($adapter, 'put');
         self::assertSame('zones/z1/dns_records/r1', $put[0]['uri']);
@@ -34,7 +36,9 @@ final class UpdateRecordTest extends TestCase
             ['id' => 'r1', 'name' => 'example.com', 'type' => 'A', 'content' => '203.0.113.1', 'ttl' => 60, 'proxied' => false],
         ]));
 
+        ob_start();
         Cloudflare::fromAdapter($adapter)->deproxifyRecords('z1');
+        ob_end_clean();
 
         self::assertSame([], self::requestsFor($adapter, 'put'));
     }

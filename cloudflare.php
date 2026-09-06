@@ -1,122 +1,148 @@
 #!/usr/bin/env php
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/vendor/autoload.php';
 
-use GuzzleHttp\Exception\ClientException;
 use tagadvance\roguedns\Cloudflare;
+use tagadvance\roguedns\Configuration;
+use tagadvance\roguedns\PublicIpLookup;
 
 const CONFIG_FILE = __DIR__ . '/config.ini';
 
-$options = getopt('', [
-    'add-zone:',
-    'list-zones',
-    'update-ip::',
-    'help',
-]);
-if (isset($options['help'])) {
-    print_example_usage();
-    exit;
-}
+exit(main());
 
-if (!is_readable(CONFIG_FILE)) {
-    throw new \RuntimeException('configuration is missing');
-}
-$config = parse_ini_file(CONFIG_FILE, true);
-$token = $config['api']['token'];
-if (!$token) {
-    $message = sprintf('please set token value in %s', CONFIG_FILE);
-    throw new \RuntimeException($message);
-}
+function main(): int
+{
+    $options = getopt('', [
+        'add-zone:',
+        'list-zones',
+        'update-ip::',
+        'help',
+    ]);
 
-$cloudflare = Cloudflare::fromToken($config['api']['token']);
+    if (isset($options['help'])) {
+        print usage();
 
-try {
-    if (isset($options['list-zones'])) {
-        $zones = $cloudflare->listZones();
-        foreach ($zones as $zone) {
-            print "$zone->name" . PHP_EOL;
-            $records = $cloudflare->listRecords($zone->id);
-            foreach ($records as $record) {
-                print "\t$record->type $record->name $record->content" . PHP_EOL;
-            }
-        }
-    } elseif (isset($options['add-zone'])) {
-        $name = $options['add-zone'];
-        if (!filter_var($name, FILTER_VALIDATE_DOMAIN)) {
-            throw new \InvalidArgumentException('zone name must be a valid domain name');
-        }
-
-        $zone = $cloudflare->addZone($name, get_public_ip_address(), printNs: true);
-        $cloudflare->deproxifyRecords($zone->id);
-        $cloudflare->configure($zone->id);
-    } elseif (isset($options['update-ip'])) {
-        $ip = $options['update-ip'];
-        if (filter_var($ip, FILTER_VALIDATE_IP)) {
-            $cloudflare->updateIp($ip, $config['domains']['domain']);
-        } else {
-            if (!$config['ip']) {
-                $message = sprintf('please set one or more ip urls in %s', CONFIG_FILE);
-                throw new \RuntimeException($message);
-            }
-
-            $domain = $config['domains']['primary'];
-            $r = dns_get_record($domain, DNS_A, $config['dns']);
-            if (!isset($r[0]['ip']) || !filter_var($r[0]['ip'], FILTER_VALIDATE_IP)) {
-                $message = sprintf('DNS lookup failed for %s', $domain);
-                throw new \RuntimeException($message);
-            }
-
-            $currentIp = $r[0]['ip'];
-            $newIp = get_public_ip_address();
-
-            if ($newIp == $currentIp) {
-                print '...' . PHP_EOL;
-            } else {
-                print "New IP address detected: $currentIp => $newIp" . PHP_EOL;
-                $cloudflare->updateIp($newIp, $config['domains']['domain']);
-            }
-        }
-    } else {
-        print_example_usage();
-        exit;
+        return 0;
     }
-} catch (ClientException $e) {
-    print $e->getTraceAsString();
-    exit(1);
+
+    if ($options === false || $options === []) {
+        fwrite(STDERR, usage());
+
+        return 1;
+    }
+
+    try {
+        $config = Configuration::fromFile(CONFIG_FILE);
+        $cloudflare = Cloudflare::fromToken($config->string('api', 'token'));
+
+        if (isset($options['list-zones'])) {
+            return listZones($cloudflare);
+        }
+
+        if (isset($options['add-zone'])) {
+            return addZone($cloudflare, $config, $options['add-zone']);
+        }
+
+        return updateIp($cloudflare, $config, $options['update-ip']);
+    } catch (Throwable $e) {
+        fwrite(STDERR, $e::class . ': ' . $e->getMessage() . PHP_EOL);
+
+        return 1;
+    }
 }
 
-function print_example_usage(): void
+function listZones(Cloudflare $cloudflare): int
+{
+    foreach ($cloudflare->listZones() as $zone) {
+        print $zone->name . PHP_EOL;
+        foreach ($cloudflare->listRecords($zone->id) as $record) {
+            print "\t$record->type $record->name $record->content" . PHP_EOL;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * @param string|list<string>|false $name
+ */
+function addZone(Cloudflare $cloudflare, Configuration $config, string|array|false $name): int
+{
+    if (!is_string($name) || !filter_var($name, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
+        fwrite(STDERR, 'zone name must be a valid host name' . PHP_EOL);
+
+        return 1;
+    }
+
+    $ip = new PublicIpLookup($config->list('ip', 'url'))->find();
+
+    $zone = $cloudflare->addZone($name, $ip, printNs: true);
+    $cloudflare->deproxifyRecords($zone->id);
+    $cloudflare->configure($zone->id);
+
+    return 0;
+}
+
+/**
+ * Detects the public address and rewrites the whitelisted records only when it has changed.
+ *
+ * The change check resolves `[domains] primary` through the system resolver, which is a cheap
+ * pre-filter rather than the authority: updateIp compares against the record content Cloudflare
+ * returns before writing anything, so a resolver that disagrees costs one list call, not a write.
+ *
+ * @param string|list<string>|false $manualIp value of --update-ip, or false when passed bare
+ */
+function updateIp(Cloudflare $cloudflare, Configuration $config, string|array|false $manualIp): int
+{
+    $whitelist = $config->list('domains', 'domain');
+
+    if (is_string($manualIp) && $manualIp !== '') {
+        $ip = filter_var($manualIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4);
+        if ($ip === false) {
+            fwrite(STDERR, "not an IPv4 address: $manualIp" . PHP_EOL);
+
+            return 1;
+        }
+
+        $cloudflare->updateIp($ip, $whitelist);
+
+        return 0;
+    }
+
+    $newIp = new PublicIpLookup($config->list('ip', 'url'))->find();
+
+    $domain = $config->string('domains', 'primary');
+    $records = dns_get_record($domain, DNS_A);
+    $currentIp = $records === false ? null : ($records[0]['ip'] ?? null);
+
+    if ($currentIp === $newIp) {
+        print '...' . PHP_EOL;
+
+        return 0;
+    }
+
+    print sprintf('New IP address detected: %s => %s', $currentIp ?? 'unresolved', $newIp) . PHP_EOL;
+    $cloudflare->updateIp($newIp, $whitelist);
+
+    return 0;
+}
+
+function usage(): string
 {
     $script = basename(__FILE__);
-    print <<<EXAMPLE
+
+    return <<<USAGE
         # list zones and their records
         ./$script --list-zones
         # add a new zone with reasonable defaults
         ./$script --add-zone foo.com
         # automatically detect IP
         ./$script --update-ip
-        # manually set IP address
-        ./$script --update-ip 127.0.0.1
+        # manually set IP address (note the '=': an optional option value cannot be space-separated)
+        ./$script --update-ip=203.0.113.9
 
-        EXAMPLE;
-}
-
-function get_public_ip_address(): string
-{
-    global $config;
-    $urls = $config['ip']['url'];
-
-    // be kind to free services by randomizing urls to spread to load
-    shuffle($urls);
-    while (!empty($urls)) {
-        $url = array_shift($urls);
-        $ip = file_get_contents($url);
-        $ip = trim($ip);
-        if (filter_var($ip, FILTER_VALIDATE_IP)) {
-            return trim($ip);
-        }
-    }
-
-    throw new \RuntimeException('public ip address could not be found');
+        USAGE;
 }
