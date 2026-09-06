@@ -1,23 +1,28 @@
-FROM debian:trixie
+# syntax=docker/dockerfile:1
 
-ARG DEBIAN_FRONTEND=noninteractive
+FROM composer:2 AS vendor
 
-# config.ini holds a Cloudflare API token and is deliberately not copied in: an image layer
-# is immutable and readable by anyone who can pull it. It is mounted at runtime instead.
-COPY src/ /opt/rogue-dns/src/
-COPY cloudflare.php /opt/rogue-dns/
-COPY composer.* /opt/rogue-dns/
-COPY LICENSE /opt/rogue-dns/
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --no-progress --optimize-autoloader --no-scripts
 
-RUN apt-get update \
-    && apt-get install -y php8.4-cli php8.4-curl composer \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /opt/rogue-dns/src \
-    && composer install --working-dir /opt/rogue-dns \
-    && chmod 0744 /opt/rogue-dns/cloudflare.php
+FROM php:8.5-cli-alpine
+
+# config.ini holds a Cloudflare API token. It is deliberately NOT copied into the image:
+# an image layer is immutable and readable by anyone who can pull it. Mount it at runtime
+# instead -- see compose.yaml.
+WORKDIR /opt/rogue-dns
+
+COPY --from=vendor /app/vendor/ ./vendor/
+COPY src/ ./src/
+COPY cloudflare.php LICENSE ./
+
+RUN chmod 0755 cloudflare.php
 
 CMD ["sleep", "infinity"]
 
+# The healthcheck is also the scheduler: this is what replaced cron. The timeout has to cover
+# a DNS lookup, an address lookup against a third-party service, and a paginated walk of the
+# Cloudflare API -- the original 3s could not, and Docker SIGKILLs an overrunning probe.
 HEALTHCHECK --interval=5m --timeout=3s \
-  CMD /opt/rogue-dns/cloudflare.php --update-ip || exit 1
+    CMD ["/opt/rogue-dns/cloudflare.php", "--update-ip"]
