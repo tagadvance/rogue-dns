@@ -47,7 +47,7 @@ try {
             throw new \InvalidArgumentException('zone name must be a valid domain name');
         }
 
-        $zone = $cloudflare->addZone($name, $printNs = true);
+        $zone = $cloudflare->addZone($name, get_public_ip_address(), printNs: true);
         $cloudflare->deproxifyRecords($zone->id);
         $cloudflare->configure($zone->id);
     } elseif (isset($options['update-ip'])) {

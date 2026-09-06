@@ -47,7 +47,7 @@ class Cloudflare
         $this->zoneSettings = new ZoneSettings($adapter);
     }
 
-    public function addZone(string $name, bool $printNs = false)
+    public function addZone(string $name, string $ip, bool $printNs = false): stdClass
     {
         $zone = $this->zones->addZone($name, $jumpStart = true);
 
@@ -63,7 +63,6 @@ class Cloudflare
         if (!isset($recordsByName[$zone->name])) {
             print "Creating A $zone->name" . PHP_EOL;
 
-            $ip = get_public_ip_address();
             $this->dns->addRecord($zone->id, 'A', $zone->name, $ip, self::TTL, self::PROXIED);
         }
 
