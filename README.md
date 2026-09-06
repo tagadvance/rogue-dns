@@ -92,7 +92,23 @@ whitelist.
 ./cloudflare.php --watch
 # report whether the watch loop is still succeeding
 ./cloudflare.php --health
+# check the whitelist against what Cloudflare actually holds
+./cloudflare.php --doctor
 ```
+
+### Keeping the whitelist honest
+
+A whitelist drifts. A domain gets moved to GitHub Pages or a VPS, and `config.ini` is the last thing
+anyone remembers to update — at which point the next address change rewrites a record that is no
+longer yours to rewrite.
+
+`--doctor` is read-only and reports exactly that: whitelisted names with no A record, names served by
+several records, names that are proxied, and names pointing somewhere other than this host. It exits
+non-zero when something needs a human, so it can be run on a schedule.
+
+Note the limit of what it can do: a *single* A record pointing elsewhere is indistinguishable from
+one that simply has not been updated yet, so the tool reports it and still rewrites it on the next
+address change. Only you know which it is. Run `--doctor` after moving a domain.
 
 Note the `=` in the last form. `--update-ip` takes an *optional* value, and PHP's `getopt` only binds
 those when they are attached with `=`; `--update-ip 203.0.113.9` silently discards the address and

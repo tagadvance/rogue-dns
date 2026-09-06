@@ -278,6 +278,32 @@ class Cloudflare
     }
 
     /**
+     * Every A record from the zones that could hold a whitelisted name. Read-only, and the same
+     * set updateIp reconciles, so a report built from it describes what updateIp would actually
+     * see.
+     *
+     * @param list<string> $domainWhitelist
+     * @return list<Record>
+     */
+    public function listWhitelistedRecords(array $domainWhitelist): array
+    {
+        $records = [];
+        foreach ($this->listZones() as $zone) {
+            if (!self::mayContain($zone, $domainWhitelist)) {
+                continue;
+            }
+
+            foreach ($this->listRecords($zone->id, type: 'A') as $record) {
+                if (in_array($record->name, $domainWhitelist, strict: true)) {
+                    $records[] = $record;
+                }
+            }
+        }
+
+        return $records;
+    }
+
+    /**
      * Whether any whitelisted name falls inside this zone.
      *
      * @param list<string> $domainWhitelist
