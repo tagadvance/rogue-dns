@@ -30,6 +30,15 @@ class Cloudflare
         return new self($adapter);
     }
 
+    /**
+     * Builds a client over an already-configured adapter. Prefer fromToken(); this exists so
+     * tests can substitute a transport.
+     */
+    public static function fromAdapter(Adapter $adapter): self
+    {
+        return new self($adapter);
+    }
+
     private function __construct(Adapter $adapter)
     {
         $this->dns = new DNS($adapter);
@@ -80,7 +89,7 @@ class Cloudflare
         $listRecords = fn(int $page) => $this->dns->listRecords($zoneId, $type, $name, $content, $page);
         $recordGenerator = self::paginate($listRecords);
 
-        return iterator_to_array($recordGenerator);
+        return iterator_to_array($recordGenerator, preserve_keys: false);
     }
 
     public function deproxifyRecords(string $zoneId): void
@@ -168,7 +177,7 @@ class Cloudflare
         $listZones = fn(int $page) => $this->zones->listZones($name, $status, $page, $perPage, $order, $direction, $match);
         $zoneGenerator = self::paginate($listZones);
 
-        return iterator_to_array($zoneGenerator);
+        return iterator_to_array($zoneGenerator, preserve_keys: false);
     }
 
     public static function paginate(callable $getPage): Iterator
