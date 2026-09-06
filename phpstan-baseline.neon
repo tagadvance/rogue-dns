@@ -1,0 +1,403 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Cannot access offset ''api'' on array\|false\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
+			path: cloudflare.php
+
+		-
+			message: '#^Cannot access offset ''domain'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 2
+			path: cloudflare.php
+
+		-
+			message: '#^Cannot access offset ''domains'' on array\|false\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Cannot access offset ''ip'' on array\|false\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Cannot access offset ''ip'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Cannot access offset ''primary'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Cannot access offset ''token'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Cannot access offset ''url'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Cannot access property \$content on mixed\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Cannot access property \$id on mixed\.$#'
+			identifier: property.nonObject
+			count: 3
+			path: cloudflare.php
+
+		-
+			message: '#^Cannot access property \$name on mixed\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: cloudflare.php
+
+		-
+			message: '#^Cannot access property \$type on mixed\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Parameter \#1 \$array of function shuffle expects TArray of array\<T\>, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Parameter \#1 \$filename of function file_get_contents expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Parameter \#1 \$hostname of function dns_get_record expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Parameter \#1 \$ip of method tagadvance\\roguedns\\Cloudflare\:\:updateIp\(\) expects string, list\<mixed\>\|string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Parameter \#1 \$name of method tagadvance\\roguedns\\Cloudflare\:\:addZone\(\) expects string, list\<mixed\>\|string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Parameter \#1 \$string of function trim expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Parameter \#1 \$token of static method tagadvance\\roguedns\\Cloudflare\:\:fromToken\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Parameter \#1 \$zoneId of method tagadvance\\roguedns\\Cloudflare\:\:configure\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Parameter \#1 \$zoneId of method tagadvance\\roguedns\\Cloudflare\:\:deproxifyRecords\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Parameter \#1 \$zoneId of method tagadvance\\roguedns\\Cloudflare\:\:listRecords\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Parameter \#2 \$domainWhitelist of method tagadvance\\roguedns\\Cloudflare\:\:updateIp\(\) expects array, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: cloudflare.php
+
+		-
+			message: '#^Parameter \#2 \.\.\.\$values of function sprintf expects bool\|float\|int\|string\|null, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Part \$currentIp \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Part \$record\-\>content \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Part \$record\-\>name \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Part \$record\-\>type \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Part \$zone\-\>name \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: cloudflare.php
+
+		-
+			message: '#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\.$#'
+			identifier: foreach.nonIterable
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Cannot access property \$id on mixed\.$#'
+			identifier: property.nonObject
+			count: 3
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Cannot access property \$name on mixed\.$#'
+			identifier: property.nonObject
+			count: 4
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Cannot access property \$proxied on mixed\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Cannot access property \$result on mixed\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Cannot access property \$result_info on mixed\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Cannot access property \$total_pages on mixed\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Cannot access property \$zone_id on mixed\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Method tagadvance\\roguedns\\Cloudflare\:\:addZone\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Method tagadvance\\roguedns\\Cloudflare\:\:listRecords\(\) has parameter \$content with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Method tagadvance\\roguedns\\Cloudflare\:\:listRecords\(\) has parameter \$name with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Method tagadvance\\roguedns\\Cloudflare\:\:listRecords\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Method tagadvance\\roguedns\\Cloudflare\:\:listZones\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Method tagadvance\\roguedns\\Cloudflare\:\:patchRecordDetails\(\) has parameter \$details with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Method tagadvance\\roguedns\\Cloudflare\:\:updateIp\(\) has parameter \$domainWhitelist with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Parameter \#1 \$record of method tagadvance\\roguedns\\Cloudflare\:\:patchRecordDetails\(\) expects stdClass, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Parameter \#1 \$zoneID of method Cloudflare\\API\\Endpoints\\DNS\:\:addRecord\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Parameter \#1 \$zoneID of method Cloudflare\\API\\Endpoints\\DNS\:\:deleteRecord\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Parameter \#1 \$zoneID of method Cloudflare\\API\\Endpoints\\DNS\:\:updateRecordDetails\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Parameter \#1 \$zoneId of method tagadvance\\roguedns\\Cloudflare\:\:listRecords\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Parameter \#2 \$callback of function array_filter expects \(callable\(mixed\)\: bool\)\|null, Closure\(mixed\)\: mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Parameter \#2 \$recordID of method Cloudflare\\API\\Endpoints\\DNS\:\:deleteRecord\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Parameter \#2 \$recordID of method Cloudflare\\API\\Endpoints\\DNS\:\:updateRecordDetails\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Parameter \#3 \$name of method Cloudflare\\API\\Endpoints\\DNS\:\:addRecord\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Parameter \#3 \$name of method Cloudflare\\API\\Endpoints\\DNS\:\:listRecords\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Parameter \#4 \$content of method Cloudflare\\API\\Endpoints\\DNS\:\:addRecord\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Parameter \#4 \$content of method Cloudflare\\API\\Endpoints\\DNS\:\:listRecords\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Part \$nameServer \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Part \$record\-\>name \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 2
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Part \$zone\-\>name \(mixed\) of encapsed string cannot be cast to string\.$#'
+			identifier: encapsedStringPart.nonString
+			count: 4
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Possibly invalid array key type mixed\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 1
+			path: src/Cloudflare.php
+
+		-
+			message: '#^Binary operation "\." between ''zones/'' and mixed results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 2
+			path: src/ZoneSettings.php
+
+		-
+			message: '#^Cannot access property \$result on mixed\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: src/ZoneSettings.php
+
+		-
+			message: '#^Cannot access property \$success on mixed\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: src/ZoneSettings.php
+
+		-
+			message: '#^Cannot access property \$value on mixed\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: src/ZoneSettings.php
+
+		-
+			message: '#^Method tagadvance\\roguedns\\ZoneSettings\:\:getBrotliSetting\(\) has parameter \$zoneID with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: src/ZoneSettings.php
+
+		-
+			message: '#^Method tagadvance\\roguedns\\ZoneSettings\:\:getBrotliSetting\(\) should return bool\|string but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/ZoneSettings.php
+
+		-
+			message: '#^Method tagadvance\\roguedns\\ZoneSettings\:\:updateBrotliSetting\(\) has parameter \$zoneID with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: src/ZoneSettings.php
