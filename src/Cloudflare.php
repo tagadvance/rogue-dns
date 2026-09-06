@@ -8,6 +8,7 @@ use Cloudflare\API\Adapter\Adapter;
 use Cloudflare\API\Adapter\Guzzle;
 use Cloudflare\API\Adapter\ResponseException;
 use Cloudflare\API\Auth\APIToken;
+use Cloudflare\API\Endpoints\Accounts;
 use Cloudflare\API\Endpoints\DNS;
 use Cloudflare\API\Endpoints\SSL;
 use Cloudflare\API\Endpoints\Zones;
@@ -23,6 +24,7 @@ class Cloudflare
     /** Records are grey-clouded: this tool exists to publish the origin, not to proxy it. */
     public const PROXIED = false;
 
+    private Adapter $adapter;
     private DNS $dns;
     private SSL $ssl;
     private Zones $zones;
@@ -47,6 +49,7 @@ class Cloudflare
 
     private function __construct(Adapter $adapter)
     {
+        $this->adapter = $adapter;
         $this->dns = new DNS($adapter);
         $this->ssl = new SSL($adapter);
         $this->zones = new Zones($adapter);
@@ -60,10 +63,13 @@ class Cloudflare
      * Jump start is on, so Cloudflare imports whatever records it can already see; anything it
      * imported that this method would otherwise create is left alone, and the www CNAME it likes
      * to add is removed. The caller supplies the address because this class does no lookups.
+     *
+     * @param string $accountId required by POST /zones under a scoped token; discover it with
+     *                          accountId() rather than hardcoding it
      */
-    public function addZone(string $name, string $ip, bool $printNs = false): Zone
+    public function addZone(string $name, string $ip, bool $printNs = false, string $accountId = ''): Zone
     {
-        $zone = Zone::fromResponse($this->zones->addZone($name, jumpStart: true));
+        $zone = Zone::fromResponse($this->zones->addZone($name, jumpStart: true, accountId: $accountId));
 
         if ($printNs) {
             foreach ($zone->nameServers as $nameServer) {
@@ -92,6 +98,27 @@ class Cloudflare
         }
 
         return $zone;
+    }
+
+    /**
+     * The first account this token can see, which is the one a new zone belongs to.
+     *
+     * POST /zones rejects a request with no account when the token is scoped, which is every
+     * token created through the dashboard's token UI.
+     *
+     * @throws RuntimeException when the token can see no accounts
+     */
+    public function accountId(): string
+    {
+        $accounts = new Accounts($this->adapter);
+        $listAccounts = fn(int $page): stdClass => $accounts->listAccounts($page);
+        $first = iterator_to_array(self::paginate($listAccounts), preserve_keys: false)[0] ?? null;
+
+        if ($first === null) {
+            throw new RuntimeException('the API token can see no accounts; it needs account-level scope to add a zone');
+        }
+
+        return Field::string($first, 'id');
     }
 
     /**
@@ -223,7 +250,7 @@ class Cloudflare
                     print "Updated record $record->name!" . PHP_EOL;
                 } catch (ResponseException $e) {
                     // Cloudflare rejects a duplicate rather than treating the write as a no-op.
-                    if ($e->getMessage() === 'Record already exists.') {
+                    if (self::isDuplicateRecord($e)) {
                         continue;
                     }
 
@@ -231,6 +258,17 @@ class Cloudflare
                 }
             }
         }
+    }
+
+    /**
+     * Cloudflare's error codes for "a record with this name and content already exists". The
+     * code is the stable identifier; the message is human-readable prose that can be reworded,
+     * and matching on it was one Cloudflare copy edit away from turning a skip into a crash.
+     */
+    private static function isDuplicateRecord(ResponseException $e): bool
+    {
+        return in_array($e->getCode(), [81053, 81057, 81058], strict: true)
+            || $e->getMessage() === 'Record already exists.';
     }
 
     /**

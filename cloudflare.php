@@ -95,7 +95,7 @@ function addZone(Cloudflare $cloudflare, Configuration $config, mixed $name): in
 
     $ip = new PublicIpLookup($config->list('ip', 'url'))->find();
 
-    $zone = $cloudflare->addZone($name, $ip, printNs: true);
+    $zone = $cloudflare->addZone($name, $ip, printNs: true, accountId: $cloudflare->accountId());
     $cloudflare->deproxifyRecords($zone->id);
     $cloudflare->configure($zone->id);
 
