@@ -8,7 +8,8 @@ Point DNS records in Cloudflare at a dynamically allocated IP address, so you ca
 without a static IP.
 
 Every five minutes it detects the host's public address and, when it differs from what Cloudflare
-holds, rewrites the whitelisted A records to match.
+holds, rewrites the whitelisted A records to match. Two independent address sources must agree
+before anything is published.
 
 ## Requirements
 
@@ -54,8 +55,9 @@ ever needs to read zones and edit DNS, so scope it as narrowly as you can:
 | Zone → Zone Settings | Edit | `--add-zone` only |
 
 `--add-zone` creates zones and rewrites SSL settings, so it wants a far more powerful token than the
-container does. Consider a minimal `Zone:Read` + `DNS:Edit` token for the long-running container and
-a separate one for interactive use.
+container does. It also needs the token's **Account Resources** to include the account — `POST /zones`
+is rejected without one. Consider a minimal `Zone:Read` + `DNS:Edit` token for the long-running
+container and a separate one for interactive use.
 
 `config.ini` sections:
 
@@ -65,9 +67,16 @@ a separate one for interactive use.
   every run does a needless pass over the API.
 - **`[domains] domain[]`** — the whitelist. Only these *exact* record names are updated. Wildcards
   are not matched.
-- **`[ip] url[]`** — public-address lookup services, tried in random order. **Any single one of these
-  decides where your domains point**, so prefer `https://`: a plaintext source lets anyone on the
-  network path choose for you.
+- **`[ip] url[]`** — public-address lookup services, asked in random order until two agree. **List at
+  least three**, so one being down does not stop updates, and prefer `https://`: a plaintext source
+  lets anyone on the network path cast a vote. With only one configured there is nothing to
+  corroborate it, and that single source decides where your domains point.
+- **`[schedule] interval`** — seconds between checks in `--watch` mode. Optional; defaults to 300.
+
+A whitelisted name served by **several** A records is skipped with a warning. Writing one address
+into a round-robin set breaks whatever it points at, and Cloudflare rejects the rest as duplicates,
+so the result would be a silent partial rewrite. Reduce it to one record, or drop it from the
+whitelist.
 
 ## Usage
 
@@ -80,6 +89,12 @@ a separate one for interactive use.
 ./cloudflare.php --update-ip
 # manually set IP address
 ./cloudflare.php --update-ip=203.0.113.9
+# show what would change, without writing anything
+./cloudflare.php --update-ip --dry-run
+# run continuously on an interval (this is what the container does)
+./cloudflare.php --watch
+# report whether the watch loop is still succeeding
+./cloudflare.php --health
 ```
 
 Note the `=` in the last form. `--update-ip` takes an *optional* value, and PHP's `getopt` only binds
@@ -88,14 +103,19 @@ falls back to auto-detection.
 
 ## How it is scheduled
 
-The container's `CMD` is `sleep infinity` and the work is done by the Docker `HEALTHCHECK`, which
-runs `--update-ip` every five minutes. This has some sharp edges worth knowing:
+The container runs `--watch` as its main process: it checks every `[schedule] interval` seconds and
+logs each run to stdout, so `docker logs -f rogue-dns` shows what it is doing. `SIGTERM` stops it
+after the current run, so `docker compose down` will not interrupt a write.
 
-- Output goes to the health log, not the container log. `docker logs` will be empty; use
-  `docker inspect --format '{{json .State.Health}}' <container>`. That log keeps only the last five
-  probes and truncates each to 4KB, so it holds roughly 25 minutes of history.
-- Nothing acts on `unhealthy`. `restart: unless-stopped` reacts to PID 1 exiting, and PID 1 is
-  `sleep infinity`, so a container whose updates have been failing for hours still looks "up".
+The `HEALTHCHECK` runs `--health`, which only reads the outcome the loop recorded — it does no work
+of its own, so it cannot be killed mid-update. It reports unhealthy when no run has *succeeded*
+within two intervals, which means a single transient failure recovers on the next tick rather than
+flapping the container's status.
+
+A transient failure is logged and retried on the next tick rather than exiting; sustained failure
+surfaces as `unhealthy` in `docker ps`. Note that nothing restarts an unhealthy container in plain
+Docker — that is a healthcheck's nature, not a defect here — so this is a signal to watch, not a
+self-healing mechanism.
 
 ## Development
 
