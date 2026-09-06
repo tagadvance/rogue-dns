@@ -75,6 +75,25 @@ final class Configuration
         return is_array($value) ? array_values($value) : [$value];
     }
 
+    /**
+     * An optional positive integer. Falls back rather than failing, so an absent [schedule]
+     * section keeps working.
+     *
+     * @throws RuntimeException when the key is present but is not a positive integer
+     */
+    public function positiveIntOrDefault(string $section, string $key, int $default): int
+    {
+        $value = $this->sections[$section][$key] ?? null;
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        if (is_array($value) || filter_var($value, FILTER_VALIDATE_INT) === false || (int) $value < 1) {
+            throw new RuntimeException($this->describe($section, $key, 'must be a positive integer'));
+        }
+
+        return (int) $value;
+    }
+
     private function describe(string $section, string $key, string $problem): string
     {
         return sprintf('[%s] %s %s in %s', $section, $key, $problem, $this->path);

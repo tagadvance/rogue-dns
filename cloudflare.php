@@ -7,9 +7,14 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 use tagadvance\roguedns\Cloudflare;
 use tagadvance\roguedns\Configuration;
+use tagadvance\roguedns\HealthState;
 use tagadvance\roguedns\PublicIpLookup;
+use tagadvance\roguedns\Scheduler;
 
 const CONFIG_FILE = __DIR__ . '/config.ini';
+
+/** Overridable with [schedule] interval. Five minutes is what the old healthcheck used. */
+const DEFAULT_INTERVAL_SECONDS = 300;
 
 exit(main());
 
@@ -19,6 +24,8 @@ function main(): int
         'add-zone:',
         'list-zones',
         'update-ip::',
+        'watch',
+        'health',
         'dry-run',
         'help',
     ]);
@@ -35,6 +42,10 @@ function main(): int
         return 1;
     }
 
+    if (isset($options['health'])) {
+        return health();
+    }
+
     try {
         $config = Configuration::fromFile(CONFIG_FILE);
         $cloudflare = Cloudflare::fromToken($config->string('api', 'token'));
@@ -45,6 +56,10 @@ function main(): int
 
         if (isset($options['add-zone'])) {
             return addZone($cloudflare, $config, $options['add-zone']);
+        }
+
+        if (isset($options['watch'])) {
+            return watch($cloudflare, $config, isset($options['dry-run']));
         }
 
         return updateIp($cloudflare, $config, $options['update-ip'], isset($options['dry-run']));
@@ -133,6 +148,67 @@ function updateIp(Cloudflare $cloudflare, Configuration $config, mixed $manualIp
     return 0;
 }
 
+/**
+ * Runs the update on an interval as a long-lived foreground process, logging to stdout so
+ * `docker logs` shows it. Stops cleanly on SIGTERM/SIGINT where pcntl is available.
+ */
+function watch(Cloudflare $cloudflare, Configuration $config, bool $dryRun): int
+{
+    $interval = $config->positiveIntOrDefault('schedule', 'interval', DEFAULT_INTERVAL_SECONDS);
+    $health = HealthState::default();
+    $running = true;
+
+    if (function_exists('pcntl_async_signals')) {
+        pcntl_async_signals(true);
+        $stop = static function (int $signal) use (&$running): void {
+            $running = false;
+            printf('[%s] signal %d received, stopping after this run%s', Scheduler::now(), $signal, PHP_EOL);
+        };
+        pcntl_signal(SIGTERM, $stop);
+        pcntl_signal(SIGINT, $stop);
+    }
+
+    printf('[%s] watching every %ds%s', Scheduler::now(), $interval, PHP_EOL);
+
+    $task = static function () use ($cloudflare, $config, $dryRun): void {
+        printf('[%s] checking%s', Scheduler::now(), PHP_EOL);
+        $status = updateIp($cloudflare, $config, false, $dryRun);
+        if ($status !== 0) {
+            throw new RuntimeException('update failed');
+        }
+    };
+
+    // by-reference: an arrow function captures $running by value and would never see the signal
+    $shouldContinue = static function () use (&$running): bool {
+        return $running;
+    };
+
+    new Scheduler($health, $interval)->run($task, $shouldContinue);
+
+    printf('[%s] stopped%s', Scheduler::now(), PHP_EOL);
+
+    return 0;
+}
+
+/**
+ * Reports whether the watch loop is still succeeding. Reads the recorded state only -- it must
+ * not repeat the work, or an overrunning probe gets SIGKILLed mid-update.
+ */
+function health(): int
+{
+    $interval = DEFAULT_INTERVAL_SECONDS;
+    try {
+        $interval = Configuration::fromFile(CONFIG_FILE)->positiveIntOrDefault('schedule', 'interval', $interval);
+    } catch (Throwable) {
+        // Fall back to the default interval; the state check below is the real signal.
+    }
+
+    $health = HealthState::default();
+    print $health->describe($interval) . PHP_EOL;
+
+    return $health->isHealthy($interval) ? 0 : 1;
+}
+
 function usage(): string
 {
     $script = basename(__FILE__);
@@ -148,6 +224,10 @@ function usage(): string
         ./$script --update-ip=203.0.113.9
         # report what would change without writing anything
         ./$script --update-ip --dry-run
+        # run continuously on an interval (this is what the container does)
+        ./$script --watch
+        # report whether the watch loop is still succeeding
+        ./$script --health
 
         USAGE;
 }
